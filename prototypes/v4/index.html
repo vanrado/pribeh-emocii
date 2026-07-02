@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F4EEE2">
+<title>Veľký príbeh emócií</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap');
+
+:root{
+  --paper:#F4EEE2;
+  --paper-deep:#ECE3D3;
+  --page-bg:#e2d9c6;
+  --ink:#2B2620;
+  --ink-soft:#7A6E5C;
+  --ink-faint:#A89C87;
+  --line: rgba(43,38,32,0.14);
+
+  --orange:#D97A3F;
+  --orange-deep:#B25522;
+  --orange-soft:#F6E1CC;
+  --orange-soft2:#FBEDDD;
+
+  --green:#1F5C46;
+  --green-deep:#143F30;
+  --green-soft:#DCE8DE;
+  --green-soft2:#EAF1E9;
+
+  --radius-card: 22px;
+  --col-max: 600px;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{
+  margin:0; min-height:100%;
+  background:
+    radial-gradient(circle at 14% 8%, #efe7d8 0%, transparent 50%),
+    radial-gradient(circle at 86% 92%, #e7ddc8 0%, transparent 50%),
+    var(--page-bg);
+  font-family:'Work Sans', sans-serif;
+  color:var(--ink);
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition-duration:.001ms !important; animation-duration:.001ms !important;}
+}
+
+/* ---------- APP SHELL (no device frame — just a responsive page) ---------- */
+.app{
+  position:relative;
+  width:100%; max-width:var(--col-max); margin:0 auto;
+  min-height:100vh; min-height:100dvh;
+  background:var(--paper);
+  display:flex; flex-direction:column;
+  isolation:isolate;
+}
+@media (min-width:700px){
+  body{padding:36px 16px;}
+  .app{
+    min-height:calc(100dvh - 72px);
+    border-radius:28px; overflow:hidden;
+    box-shadow:0 40px 70px -30px rgba(40,30,15,.32), 0 10px 26px -10px rgba(40,30,15,.16);
+  }
+}
+
+.bg-grain{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  opacity:.045; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- TOP BAR ---------- */
+.topbar{
+  position:sticky; top:0; z-index:30;
+  background:rgba(244,238,226,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  padding:max(16px, env(safe-area-inset-top)) 18px 12px;
+  display:flex; align-items:center; gap:10px;
+}
+.icon-btn{
+  width:36px; height:36px; border-radius:50%;
+  border:1px solid var(--line); background:rgba(255,255,255,.6);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--ink); flex:none;
+  transition:transform .15s ease, background .15s ease;
+}
+.icon-btn:hover{background:#fff;}
+.icon-btn:active{transform:scale(.92);}
+.icon-btn.hidden{visibility:hidden;}
+.icon-btn svg{width:16px;height:16px;}
+
+.progress{flex:1; display:flex; gap:5px; justify-content:center;}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--line); transition:all .3s ease;}
+.dot.done{background:var(--orange-deep);}
+.dot.active{background:var(--ink); width:18px; border-radius:5px;}
+
+/* ---------- MAIN / SCREENS ---------- */
+.main{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; position:relative; z-index:1;}
+.screen{
+  display:none; flex-direction:column;
+  min-height:100%;
+  padding:22px clamp(20px, 5vw, 40px) 0;
+}
+.screen.active{ display:flex; animation:screenIn .42s cubic-bezier(.22,.7,.3,1); }
+@keyframes screenIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+.eyebrow{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:2px 0 6px;}
+h1{
+  font-family:'Fraunces', serif; font-weight:600;
+  font-size:clamp(24px, 4.2vw, 30px); line-height:1.16; margin:0 0 8px; letter-spacing:-.01em;
+}
+.subtitle{font-size:clamp(14px,2.6vw,15.5px); color:var(--ink-soft); line-height:1.55; margin:0 0 18px; max-width:46ch;}
+.spacer{flex:1;}
+
+textarea, input[type=text]{
+  width:100%; font-family:'Work Sans', sans-serif; font-size:15px; color:var(--ink);
+  background:#fff; border:1px solid var(--line); border-radius:16px;
+  padding:14px 16px; resize:none; outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+textarea:focus, input[type=text]:focus{ border-color:var(--orange-deep); box-shadow:0 0 0 3px rgba(217,122,63,.15); }
+textarea{min-height:120px; line-height:1.5;}
+
+/* ---------- BUTTONS ---------- */
+.btn{
+  appearance:none; border:none; cursor:pointer;
+  font-family:'Work Sans', sans-serif; font-weight:600; font-size:15px;
+  border-radius:999px; padding:15px 20px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; transition:transform .12s ease, opacity .2s ease, box-shadow .2s ease;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{ background:var(--ink); color:var(--paper); box-shadow:0 8px 18px -8px rgba(20,15,8,.5); }
+.btn-primary:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none; }
+.btn-primary:focus-visible, .btn-secondary:focus-visible, .icon-btn:focus-visible, .chip:focus-visible{
+  outline:2px solid var(--orange-deep); outline-offset:2px;
+}
+.btn-ghost{ background:transparent; color:var(--ink-soft); font-weight:500; font-size:13.5px; text-decoration:underline; text-underline-offset:3px; padding:10px; }
+.btn-outline{
+  flex:1; background:#fff; color:var(--ink); border:1px solid var(--line);
+  font-weight:600; font-size:14.5px; border-radius:999px; padding:13px 14px;
+  cursor:pointer; transition:border-color .15s ease, background .15s ease;
+}
+
+.bottom-fixed{
+  position:sticky; bottom:0; z-index:5;
+  max-width:420px; width:100%; margin:0 auto;
+  padding:16px 0 max(16px, env(safe-area-inset-bottom));
+  background:linear-gradient(to top, var(--paper) 60%, transparent);
+}
+
+/* ---------- mental output note ---------- */
+.note{
+  margin-top:auto; padding-top:14px; padding-bottom:18px;
+  border-top:1px dashed var(--line);
+  font-size:12px; color:var(--ink-faint); display:flex; gap:6px; align-items:flex-start;
+}
+.note svg{flex:none; width:13px; height:13px; margin-top:2px;}
+
+/* ---------- ai block ---------- */
+.ai-block{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px; margin-bottom:14px; }
+.ai-block h3{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin:0 0 6px; }
+.ai-block p{ font-size:13.8px; line-height:1.55; color:var(--ink); margin:0; }
+
+/* ---------- S3 illustration ---------- */
+.illustration-wrap{ display:flex; justify-content:center; margin:4px 0 14px; }
+
+/* ---------- interpretation buttons ---------- */
+.interp-row{ display:flex; gap:10px; margin:10px 0; }
+.interp-btn{ flex:1; padding:12px 10px; border-radius:14px; border:1px solid var(--line); background:#fff; font-weight:600; font-size:13.5px; cursor:pointer; }
+.interp-btn.selected{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.inline-other{ display:none; margin-top:4px; }
+.inline-other.show{display:block;}
+
+/* ---------- S5 bridge ---------- */
+.bridge{ display:flex; align-items:center; gap:8px; margin:6px 0 16px; }
+.bridge-card{ flex:1; border-radius:16px; padding:14px 10px; text-align:center; border:1px solid var(--line); }
+.bridge-card.from{background:var(--orange-soft2); color:var(--orange-deep);}
+.bridge-card.to{background:var(--green-soft2); color:var(--green-deep);}
+.bridge-card .nm{font-family:'Fraunces',serif; font-weight:600; font-size:15px;}
+.bridge-card .lbl{font-size:10px; text-transform:uppercase; letter-spacing:.05em; opacity:.7;}
+.bridge-arrow{flex:none; color:var(--ink-faint);}
+.bridge-arrow svg{width:22px;height:22px;}
+
+.check-row{ display:flex; align-items:flex-start; gap:10px; margin:14px 0 6px; cursor:pointer; user-select:none; }
+.check-box{
+  width:21px;height:21px;border-radius:7px;border:1.6px solid var(--ink-faint);
+  flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;
+  transition:all .15s ease; background:#fff;
+}
+.check-box.checked{ background:var(--ink); border-color:var(--ink); }
+.check-box svg{width:13px;height:13px;color:var(--paper); opacity:0; transition:opacity .15s ease;}
+.check-box.checked svg{opacity:1;}
+.check-text{font-size:13.5px; color:var(--ink); line-height:1.45;}
+
+/* ---------- S6 radios ---------- */
+.radio-item{
+  display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
+  border:1px solid var(--line); border-radius:14px; margin-bottom:9px;
+  cursor:pointer; background:#fff; transition:all .15s ease;
+}
+.radio-item.selected{ border-color:var(--green-deep); background:var(--green-soft2); }
+.radio-dot{ width:18px;height:18px;border-radius:50%; border:1.6px solid var(--ink-faint); flex:none; margin-top:1px; display:flex; align-items:center; justify-content:center; }
+.radio-dot.on{border-color:var(--green-deep);}
+.radio-dot.on::after{content:''; width:9px;height:9px;border-radius:50%;background:var(--green-deep);}
+.radio-text{font-size:14px; line-height:1.45;}
+.radio-item textarea{margin-top:8px; min-height:60px;}
+
+/* ---------- S7 summary ---------- */
+.story-card{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:12px; }
+.story-card p{font-size:14.5px; line-height:1.6; margin:0;}
+.mantra-card{ background:linear-gradient(160deg, #2b2620, #1c1813); color:var(--paper); border-radius:18px; padding:20px; text-align:center; margin-bottom:14px; }
+.mantra-card .cap{font-size:11px; text-transform:uppercase; letter-spacing:.08em; opacity:.6; margin-bottom:6px;}
+.mantra-card .txt{font-family:'Caveat', cursive; font-size:24px; line-height:1.3;}
+.recap{ display:flex; gap:10px; margin-bottom:18px; }
+.recap-item{ flex:1; border-radius:14px; padding:12px; font-size:12.5px; border:1px solid var(--line); background:#fff; }
+.recap-item .k{display:block; font-size:10px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; letter-spacing:.05em;}
+.recap-item .v{font-weight:600; font-size:13.5px;}
+
+.done-state{ text-align:center; padding:30px 6px; margin:auto 0; }
+.done-state .check-circle{ width:64px;height:64px;border-radius:50%; background:var(--green-deep); color:#fff; display:flex;align-items:center;justify-content:center; margin:0 auto 16px; }
+.done-state .check-circle svg{width:28px;height:28px;}
+.done-state h2{font-family:'Fraunces',serif; font-size:21px; margin:0 0 8px;}
+.done-state p{color:var(--ink-soft); font-size:14px; margin:0 0 22px;}
+
+.figure{stroke:currentColor; fill:none; stroke-width:5; stroke-linecap:round; stroke-linejoin:round;}
+
+/* ---------- S2: recommended cards — centered snap carousel ---------- */
+.card-carousel{
+  --cardw: clamp(200px, 68vw, 250px);
+  display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  /* bleed to the screen edges so neighbouring cards can peek */
+  margin:2px calc(-1 * clamp(20px,5vw,40px)) 0;
+  padding:6px 0 14px;
+  scrollbar-width:none;
+}
+.card-carousel::-webkit-scrollbar{ display:none; }
+/* spacers so the first/last card can rest in the centre */
+.card-carousel::before, .card-carousel::after{
+  content:''; flex:0 0 calc(50% - var(--cardw)/2 - 14px);
+}
+.emo-flip{
+  flex:0 0 auto; width:var(--cardw); aspect-ratio:570/900;
+  scroll-snap-align:center; perspective:1200px; cursor:pointer;
+}
+.emo-flip-inner{
+  position:relative; width:100%; height:100%; border-radius:18px;
+  transform-style:preserve-3d; transition:transform .55s cubic-bezier(.2,.7,.3,1);
+}
+.emo-flip.flipped .emo-flip-inner{ transform:rotateY(180deg); }
+.emo-face{
+  position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  border-radius:18px; overflow:hidden; border:1px solid var(--line);
+  box-shadow:0 12px 26px -16px rgba(40,30,15,.4);
+}
+.emo-flip.selected .emo-face{ box-shadow:0 0 0 3px var(--orange-deep), 0 12px 26px -16px rgba(40,30,15,.4); }
+.emo-face-front{ background:linear-gradient(160deg,var(--orange-soft2),var(--orange-soft)); }
+.emo-face-front img{ width:100%; height:100%; object-fit:cover; display:block; }
+.emo-face-front .fallback{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--orange-deep); }
+.emo-face-front .fallback svg{ width:44%; }
+.emo-name-bar{
+  position:absolute; left:0; right:0; bottom:0; padding:26px 12px 12px;
+  background:linear-gradient(to top, rgba(30,24,17,.86), rgba(30,24,17,.4) 55%, transparent);
+  color:#fff; font-family:'Fraunces',serif; font-weight:600; font-size:19px; text-align:center; letter-spacing:-.01em;
+}
+.emo-face-back{
+  transform:rotateY(180deg); background:var(--orange-soft2); color:var(--ink);
+  padding:16px 15px; display:flex; flex-direction:column;
+}
+.emo-face-back .b-name{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin-bottom:10px; }
+.emo-face-back .b-kicker{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--orange-deep); margin-bottom:6px; }
+.emo-face-back .b-text{ font-size:13.5px; line-height:1.5; overflow-y:auto; }
+.emo-face-back .b-hint{ margin-top:auto; padding-top:10px; font-size:10.5px; opacity:.55; text-align:center; }
+.carousel-dots{ display:flex; justify-content:center; gap:7px; margin:0 0 12px; }
+.carousel-dots .cdot{
+  appearance:none; border:none; padding:0; cursor:pointer;
+  width:7px; height:7px; border-radius:50%; background:var(--line);
+  transition:all .25s ease;
+}
+.carousel-dots .cdot.active{ background:var(--orange-deep); width:18px; border-radius:5px; }
+
+/* ---------- S2: all-cards inline panel (grid of card fronts) ---------- */
+.all-panel{ margin:4px 0 2px; }
+.all-panel[hidden]{ display:none; }
+.all-panel input[type=text]{ margin-bottom:12px; }
+.all-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 10px; }
+.all-cell{ cursor:pointer; }
+.all-cell-img{
+  aspect-ratio:570/900; border-radius:12px; overflow:hidden; position:relative;
+  border:1px solid var(--line); background:linear-gradient(160deg,var(--orange-soft2),var(--orange-soft));
+  color:var(--orange-deep); transition:box-shadow .15s ease, border-color .15s ease;
+}
+.all-cell-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+.all-cell-img .fallback{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.all-cell-img .fallback svg{ width:46%; }
+.all-cell.selected .all-cell-img{ box-shadow:0 0 0 3px var(--orange-deep); border-color:var(--orange-deep); }
+.all-cell-name{ font-size:12px; font-weight:600; text-align:center; margin-top:5px; line-height:1.2; color:var(--ink); }
+.all-cell.selected .all-cell-name{ color:var(--orange-deep); }
+.all-empty{ font-size:13px; color:var(--ink-faint); padding:4px 2px; }
+
+/* ---------- green (action cards) variants — S4 ---------- */
+.emo-flip.emo-green.selected .emo-face{ box-shadow:0 0 0 3px var(--green-deep), 0 12px 26px -16px rgba(40,30,15,.4); }
+.emo-green .emo-face-front{ background:linear-gradient(160deg,var(--green-soft2),var(--green-soft)); }
+.emo-green .emo-face-front .fallback{ color:var(--green-deep); }
+.emo-green .emo-face-back{ background:var(--green-soft2); }
+.emo-green .emo-face-back .b-kicker{ color:var(--green-deep); }
+.b-scroll{ flex:1; min-height:0; overflow-y:auto; }
+.b-list{ margin:4px 0 0; padding-left:16px; font-size:12.5px; line-height:1.5; }
+.b-list li{ margin-bottom:3px; }
+.carousel-dots.green .cdot.active{ background:var(--green-deep); }
+.all-cell.green .all-cell-img{ background:linear-gradient(160deg,var(--green-soft2),var(--green-soft)); color:var(--green-deep); }
+.all-cell.green.selected .all-cell-img{ box-shadow:0 0 0 3px var(--green-deep); border-color:var(--green-deep); }
+.all-cell.green.selected .all-cell-name{ color:var(--green-deep); }
+
+/* ---------- S3: selected-card illustration ---------- */
+.card-illustration{
+  position:relative; width:clamp(150px,44vw,190px); aspect-ratio:570/900;
+  border-radius:16px; overflow:hidden; border:1px solid var(--line);
+  box-shadow:0 12px 26px -16px rgba(40,30,15,.4);
+  background:linear-gradient(160deg,var(--orange-soft2),var(--orange-soft)); color:var(--orange-deep);
+}
+.card-illustration img{ width:100%; height:100%; object-fit:cover; display:block; }
+.card-illustration .fallback{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.card-illustration .fallback svg{ width:44%; }
+.card-illustration .emo-name-bar{ font-size:16px; padding:20px 10px 10px; }
+
+/* ---------- S5: bridge card images ---------- */
+.bridge-img{
+  width:min(64%,96px); aspect-ratio:570/900; margin:0 auto 8px;
+  border-radius:10px; overflow:hidden; position:relative;
+  box-shadow:0 6px 14px -8px rgba(40,30,15,.35);
+}
+.bridge-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+.bridge-img .fallback{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.bridge-img .fallback svg{ width:46%; }
+</style>
+</head>
+<body>
+
+<div class="bg-grain"></div>
+
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="icon-btn" id="backBtn" aria-label="Späť">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="icon-btn" id="resetBtn" aria-label="Spustiť znova">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+
+    <!-- SCREEN 1 -->
+    <section class="screen" data-screen="1">
+      <div class="eyebrow">Krok 1 z 7 · Situácia</div>
+      <h1>Čo sa teraz deje?</h1>
+      <p class="subtitle">Popíš, čo ťa aktuálne zaťažuje. Nikto iný to nečíta — toto je tvoj priestor.</p>
+      <textarea id="situationInput" placeholder="Napríklad: Mám dôležitú prezentáciu pred vedením a bojím sa, že ma vysmejú a zlyhám…"></textarea>
+      <div class="spacer"></div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Problém je pomenovaný. Si v bezpečnom priestore.</div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s1cta" disabled>Pokračovať</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 2 -->
+    <section class="screen" data-screen="2">
+      <div class="eyebrow">Krok 2 z 7 · Pomenovanie emócie</div>
+      <h1>Čo teraz najviac cítim?</h1>
+      <p class="subtitle">Podľa tvojho popisu sme vybrali karty, ktoré najpravdepodobnejšie sedia. Ťukni na kartu — otočí sa a vyberie.</p>
+
+      <div class="card-carousel" id="orangeRecoList"></div>
+      <div class="carousel-dots" id="recoDots"></div>
+
+      <button class="btn btn-ghost" id="orangeRandom">Neviem, čo cítim — vyber za mňa náhodne</button>
+
+      <button class="btn btn-ghost" id="orangeAllToggle">Nie je tu tvoja emócia? Zobraziť všetky karty</button>
+      <div class="all-panel" id="orangeAllPanel" hidden>
+        <input type="text" id="orangeSearch" placeholder="Hľadať emóciu…" autocomplete="off">
+        <div class="all-list" id="orangeAllList"></div>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Neutekám. Som tu. Toto je ono.</div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s2cta" disabled>Pokračovať</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3 -->
+    <section class="screen" data-screen="3">
+      <div class="eyebrow">Krok 3 z 7 · Porozumenie</div>
+      <h1>Čo mi táto karta hovorí?</h1>
+
+      <div class="illustration-wrap">
+        <div class="card-illustration" id="s3cardIllu"></div>
+      </div>
+
+      <div class="ai-block">
+        <h3>Zmysel emócie</h3>
+        <p>Táto emócia sa ti snaží povedať, že… <span id="orangeZmysel">—</span></p>
+      </div>
+
+      <p class="subtitle" style="margin-bottom:6px;">Sedí tento popis na to, čo práve cítiš?</p>
+      <div class="interp-row">
+        <button class="interp-btn" id="interpYes">Áno, presne</button>
+        <button class="interp-btn" id="interpNo">Cítim to trochu inak</button>
+      </div>
+      <div class="inline-other" id="interpOtherBox">
+        <textarea id="interpOtherText" placeholder="Čo ti napadlo? Tvoj pocit je dôležitejší ako text." style="min-height:70px;"></textarea>
+        <button class="btn btn-outline" style="margin-top:8px;" id="backToS2">Späť k výberu karty</button>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Aha… už tomu rozumiem.</div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s3cta" disabled>Pokračovať k zmene</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 4 -->
+    <section class="screen" data-screen="4">
+      <div class="eyebrow">Krok 4 z 7 · Výber smeru</div>
+      <h1>Ako sa chcem cítiť?</h1>
+      <p class="subtitle">Vyber emóciu, ktorá ti pomôže posunúť sa ďalej. Ťukni na kartu — otočí sa a vyberie.</p>
+
+      <div class="card-carousel" id="greenRecoList"></div>
+      <div class="carousel-dots green" id="greenDots"></div>
+
+      <button class="btn btn-ghost" id="greenAllToggle">Pozrieť všetky zelené karty</button>
+      <div class="all-panel" id="greenAllPanel" hidden>
+        <input type="text" id="greenSearch" placeholder="Hľadať emóciu…" autocomplete="off">
+        <div class="all-list" id="greenAllList"></div>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Viem, kam sa chcem pohnúť — a prečo.</div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s4cta" disabled>Pokračovať</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 5 -->
+    <section class="screen" data-screen="5">
+      <div class="eyebrow">Krok 5 z 7 · Zmysel cieľa</div>
+      <h1>Môj príbeh zmeny</h1>
+
+      <div class="bridge">
+        <div class="bridge-card from">
+          <div class="bridge-img" id="bridgeFromImg"></div>
+          <div class="lbl">Teraz</div>
+          <div class="nm" id="bridgeFrom">—</div>
+        </div>
+        <div class="bridge-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="bridge-card to">
+          <div class="bridge-img" id="bridgeToImg"></div>
+          <div class="lbl">Smer</div>
+          <div class="nm" id="bridgeTo">—</div>
+        </div>
+      </div>
+
+      <div class="ai-block">
+        <h3>Ako ti to pomôže?</h3>
+        <p id="bridgeExplain">—</p>
+      </div>
+
+      <div class="ai-block">
+        <h3>Cena za zmenu</h3>
+        <p>Aby si mohol/a cítiť <strong id="goalNameInline">—</strong>, karta hovorí, že potrebuješ: <span id="priceText">—</span></p>
+      </div>
+
+      <div class="check-row" id="reflectCheck">
+        <div class="check-box" id="reflectBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="check-text">Áno, rozumiem — dáva mi to v tejto chvíli zmysel.</div>
+      </div>
+
+      <div class="spacer"></div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s5cta" disabled>Pokračovať k akcii</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 6 -->
+    <section class="screen" data-screen="6">
+      <div class="eyebrow">Krok 6 z 7 · Mini-krok</div>
+      <h1>Čo môžem urobiť už dnes?</h1>
+      <p class="subtitle">Daj si záväzok, čo z toho vieš urobiť už teraz alebo čo najskôr. Cieľom je aktivácia, nie veľké plány.</p>
+
+      <div id="stepsList"></div>
+
+      <div class="spacer"></div>
+      <div class="bottom-fixed">
+        <button class="btn btn-primary" id="s6cta" disabled>Toto spravím</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 7 -->
+    <section class="screen" data-screen="7">
+      <div id="s7content">
+        <div class="eyebrow">Krok 7 z 7 · Záver session</div>
+        <h1>Mám plán. Idem do toho.</h1>
+
+        <div class="story-card">
+          <p id="storyText">—</p>
+        </div>
+
+        <div class="mantra-card">
+          <div class="cap">Sila okamihu</div>
+          <div class="txt" id="mantraText">—</div>
+        </div>
+
+        <div class="recap">
+          <div class="recap-item"><span class="k">Môj cieľ</span><span class="v" id="recapGoal">—</span></div>
+          <div class="recap-item"><span class="k">Môj krok</span><span class="v" id="recapStep">—</span></div>
+        </div>
+
+        <button class="btn btn-primary" id="s7cta">Hotovo · Uložiť session</button>
+      </div>
+
+      <div id="s7done" style="display:none;" class="done-state">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <h2>Session uložená</h2>
+        <p>Tvoja cesta zmeny je súčasťou histórie „Moja cesta“.</p>
+        <button class="btn btn-outline" id="restartFromDone" style="width:100%;">Spustiť znova</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="fig-contract" viewBox="0 0 100 120">
+      <circle class="figure" cx="50" cy="26" r="18"/>
+      <path class="figure" d="M28 18 Q50 8 72 18"/>
+      <path class="figure" d="M34 50 Q30 95 50 112 Q70 95 66 50 Z"/>
+      <path class="figure" d="M40 58 Q50 70 60 58"/>
+    </symbol>
+    <symbol id="fig-open" viewBox="0 0 100 120">
+      <circle class="figure" cx="50" cy="26" r="18"/>
+      <path class="figure" d="M28 18 Q50 8 72 18"/>
+      <path class="figure" d="M34 50 Q30 95 50 112 Q70 95 66 50 Z"/>
+      <path class="figure" d="M34 56 L16 38"/>
+      <path class="figure" d="M66 56 L84 38"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- DATA ----------
+  var orangeCandidates = [
+    {id:'uzkost', name:'Úzkosť', tagline:'napätie, obavy…',
+      situacia:'Mám pocit, že čokoľvek urobím, nebude to stačiť. Telo mám napäté a v hlave mi behajú scenáre zlyhania.',
+      zmysel:'Úzkosť ťa upozorňuje, že ti na výsledku záleží a že vnímaš riziko, na ktoré sa oplatí lepšie pripraviť.'},
+    {id:'bezmocnost', name:'Bezmocnosť', tagline:'strata kontroly…',
+      situacia:'Som odkázaný/á na pomoc iných ľudí. Stratil/a som kontrolu.',
+      zmysel:'Bezmocnosť ti hovorí, že časť situácie nevieš ovplyvniť sama/sám a že je čas hľadať oporu alebo prerozdeliť kontrolu.'},
+    {id:'hnev', name:'Hnev', tagline:'prekročené hranice…',
+      situacia:'Niekto prekročil moje hranice alebo sa ku mne správa nespravodlivo.',
+      zmysel:'Hnev ťa upozorňuje, že boli prekročené tvoje hranice a že je čas postaviť sa za seba.'}
+  ];
+
+  var greenCandidates = [
+    {id:'odvaha', name:'Odvaha', tagline:'skúsiť aj napriek strachu…',
+      zmysel:'Umožňuje mi urobiť krok, aj keď nepoznám istý výsledok.',
+      potrebujem:['Uznať strach, no nenechať ho rozhodovať.','Spraviť jeden konkrétny krok, aj malý.','Dovoliť si byť nedokonalý/á.']},
+    {id:'dostojnost', name:'Dôstojnosť', tagline:'pevné hranice…',
+      zmysel:'Umožňuje mi stanoviť si a chrániť svoje hranice.',
+      potrebujem:['Spomaliť a zhlboka vydýchnuť.','Ukotviť sa v prítomnosti.','Pustiť kontrolu nad výsledkom.']},
+    {id:'nadej', name:'Nádej', tagline:'vidieť možnosť zmeny…',
+      zmysel:'Umožňuje mi vidieť, že situácia sa môže zmeniť k lepšiemu.',
+      potrebujem:['Spomenúť si na podobnú situáciu, ktorú som už zvládol/a.','Sústrediť sa na to, čo môžem ovplyvniť.','Dovoliť si veriť v posun.']}
+  ];
+
+  var allOrangeNames = ["Sklamanie","Odpor","Apatia","Frustrácia","Depresia","Ľahostajnosť","Mrzutosť","Hrôza","Vyčerpanie","Clivota","Strach","Neistota","Zmätenosť","Stres","Bezmocnosť","Pochybnosť","Úzkosť","Beznádej","Bojazlivosť","Smútok","Rezignácia","Nerozhodnosť","Ľútosť","Vina","Arogancia","Žiaľ","Hnev","Lenivosť","Únava","Rozhorčenie"];
+  var allGreenNames = ["Blaženosť","Ambícia","Empatia","Radosť","Hrdosť","Pokora","Šťastie","Odpustenie","Sebaistota","Zvedavosť","Statočnosť","Vzrušenie","Vďačnosť","Dôvera","Ľahkosť","Hojnosť","Odvaha","Nádej","Harmónia","Vytrvalosť","Rešpekt","Eufória","Akceptácia","Láska","Dôstojnosť","Starostlivosť","Optimizmus","Súcit","Nadšenie","Ašpirácia"];
+
+  var genericOrange = function(name){ return {id:name, name:name, tagline:'tvoja vybraná karta',
+      situacia:'Toto je situácia, ktorú s touto emóciou najčastejšie spájaš.',
+      zmysel:'Táto emócia ti niečo dôležité hovorí o tvojej aktuálnej situácii. Skús sa na chvíľu zastaviť a všimnúť si, čo presne k tebe cez ňu prichádza.'}; };
+  var genericGreen = function(name){ return {id:name, name:name, tagline:'tvoj vybraný smer',
+      zmysel:'Táto emócia ťa posúva smerom, ktorý si si práve teraz zvolil/a.',
+      potrebujem:['Pomenovať si, čo presne pre teba táto emócia znamená.','Nájsť jeden malý spôsob, ako ju dnes vpustiť do svojho dňa.']}; };
+
+  // ---------- STATE ----------
+  var state = {
+    situation:'', orange:null, orangeConfirmed:false,
+    interp:null, green:null, greenConfirmed:false,
+    reflectChecked:false, step:null, history:[1]
+  };
+
+  // ---------- HELPERS ----------
+  function $(id){ return document.getElementById(id); }
+  function lower(s){ return s ? s.toLowerCase() : s; }
+
+  // ---------- PROGRESS / NAV ----------
+  var progressEl = $('progress');
+  for (var i=1;i<=7;i++){
+    var d=document.createElement('div'); d.className='dot'; d.dataset.n=i; progressEl.appendChild(d);
+  }
+  function renderProgress(n){
+    var dots = progressEl.children;
+    for (var i=0;i<dots.length;i++){
+      var num=i+1;
+      dots[i].className = 'dot' + (num<n?' done':'') + (num===n?' active':'');
+    }
+  }
+
+  function showScreen(n){
+    var screens=document.querySelectorAll('.screen');
+    screens.forEach(function(s){ s.classList.toggle('active', parseInt(s.dataset.screen)===n); });
+    renderProgress(n);
+    $('backBtn').classList.toggle('hidden', state.history.length<=1);
+    $('main').scrollTop = 0;
+    bindDynamic();
+  }
+  function goTo(n){ state.history.push(n); showScreen(n); }
+  function goBack(){
+    if(state.history.length>1){ state.history.pop(); showScreen(state.history[state.history.length-1]); }
+  }
+  $('backBtn').addEventListener('click', goBack);
+  $('resetBtn').addEventListener('click', resetAll);
+
+  // ---------- SCREEN 1 ----------
+  var situationInput = $('situationInput');
+  situationInput.addEventListener('input', function(){
+    state.situation = situationInput.value.trim();
+    $('s1cta').disabled = state.situation.length < 3;
+  });
+  $('s1cta').addEventListener('click', function(){ goTo(2); });
+
+  // ---------- SCREEN 2 (orange) ----------
+  function slugify(s){
+    return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  }
+  // Obrázky kariet sú číslované 1–60 (1–30 oranžové, 31–60 zelené), formát webp.
+  // PROVIZÓRNE: číslo = poradie emócie v allOrangeNames/allGreenNames (opraviť neskôr podľa príručky).
+  function cardImage(name){
+    var i = allOrangeNames.indexOf(name);
+    if(i>=0) return '../../docs/karty/' + (i+1) + '.webp';
+    var g = allGreenNames.indexOf(name);
+    return g>=0 ? ('../../docs/karty/' + (g+31) + '.webp') : '';
+  }
+  // Full card-front image (fills its container, keeps portrait ratio) with SVG fallback.
+  function frontImageHTML(name, fig){
+    return '<img src="'+cardImage(name)+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'
+      + '<div class="fallback" style="display:none"><svg viewBox="0 0 100 120"><use href="#'+(fig||'fig-contract')+'"/></svg></div>';
+  }
+  function orangeByName(name){
+    return orangeCandidates.find(function(c){return c.name===name;}) || genericOrange(name);
+  }
+  function isOrangeSelected(card){ return state.orange && card && state.orange.name===card.name; }
+
+  function selectOrange(card){
+    state.orange = card;
+    state.orangeConfirmed = false;
+    $('s2cta').disabled = false;
+    renderOrangeReco();
+    if(!$('orangeAllPanel').hidden) renderOrangeAll($('orangeSearch').value);
+  }
+
+  function centerCarouselCard(el, smooth){
+    if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior: smooth?'smooth':'auto'});
+  }
+  function nearestCarouselIndex(listId){
+    var car = $(listId);
+    var mid = car.getBoundingClientRect().left + car.clientWidth/2;
+    var best = 0, bd = Infinity;
+    [].forEach.call(car.querySelectorAll('.emo-flip'), function(el,i){
+      var r = el.getBoundingClientRect();
+      var d = Math.abs(r.left + r.width/2 - mid);
+      if(d < bd){ bd = d; best = i; }
+    });
+    return best;
+  }
+  function renderDots(dotsId, listId, count, active){
+    var wrap = $(dotsId); wrap.innerHTML='';
+    for(var i=0;i<count;i++){
+      (function(i){
+        var b=document.createElement('button'); b.className='cdot'+(i===active?' active':'');
+        b.setAttribute('aria-label','Karta '+(i+1));
+        b.addEventListener('click', function(){
+          centerCarouselCard($(listId).querySelectorAll('.emo-flip')[i], true);
+        });
+        wrap.appendChild(b);
+      })(i);
+    }
+  }
+  function syncDotsOnScroll(listId, dotsId){
+    var raf = null;
+    $(listId).addEventListener('scroll', function(){
+      if(raf) return;
+      raf = requestAnimationFrame(function(){
+        raf = null;
+        var idx = nearestCarouselIndex(listId);
+        var dots = $(dotsId).children;
+        for(var i=0;i<dots.length;i++) dots[i].classList.toggle('active', i===idx);
+      });
+    });
+  }
+  syncDotsOnScroll('orangeRecoList','recoDots');
+  syncDotsOnScroll('greenRecoList','greenDots');
+
+  function renderOrangeReco(){
+    var wrap = $('orangeRecoList'); wrap.innerHTML='';
+    var list = orangeCandidates.slice();
+    // if the selection came from outside the 3 recommended, surface it on top
+    if(state.orange && !orangeCandidates.some(function(c){return c.name===state.orange.name;})){
+      list.unshift(state.orange);
+    }
+    var selEl = null, selIdx = -1;
+    list.forEach(function(c, i){
+      var sel = isOrangeSelected(c);
+      var el = document.createElement('div');
+      el.className = 'emo-flip' + (sel?' selected flipped':'');
+      el.innerHTML =
+        '<div class="emo-flip-inner">'
+        + '<div class="emo-face emo-face-front">'
+        +   frontImageHTML(c.name)
+        +   '<div class="emo-name-bar">'+c.name+'</div>'
+        + '</div>'
+        + '<div class="emo-face emo-face-back">'
+        +   '<div class="b-name">'+c.name+'</div>'
+        +   '<div class="b-kicker">Situácia, ktorá sa ti deje</div>'
+        +   '<div class="b-text">'+c.situacia+'</div>'
+        +   '<div class="b-hint">ťukni pre návrat ↺</div>'
+        + '</div>'
+        + '</div>';
+      el.addEventListener('click', function(){
+        if(isOrangeSelected(c)){
+          el.classList.toggle('flipped');   // already chosen → just flip front/back
+        } else {
+          selectOrange(c);                   // choose it (re-renders flipped to the back)
+        }
+      });
+      wrap.appendChild(el);
+      if(sel){ selEl = el; selIdx = i; }
+    });
+    renderDots('recoDots','orangeRecoList', list.length, selIdx>=0 ? selIdx : nearestCarouselIndex('orangeRecoList'));
+    // bring the chosen card to the centre of the carousel
+    if(selEl) centerCarouselCard(selEl, true);
+  }
+
+  function renderOrangeAll(filter){
+    var wrap = $('orangeAllList');
+    var q = slugify(filter||'');
+    var names = allOrangeNames.filter(function(n){ return !q || slugify(n).indexOf(q)>=0; });
+    if(!names.length){ wrap.className=''; wrap.innerHTML = '<div class="all-empty">Nič sa nenašlo.</div>'; return; }
+    wrap.className = 'all-grid'; wrap.innerHTML='';
+    names.forEach(function(name){
+      var cell = document.createElement('div');
+      cell.className = 'all-cell' + (state.orange && state.orange.name===name ? ' selected':'');
+      cell.innerHTML = '<div class="all-cell-img">'+frontImageHTML(name)+'</div><div class="all-cell-name">'+name+'</div>';
+      cell.addEventListener('click', function(){ selectOrange(orangeByName(name)); });
+      wrap.appendChild(cell);
+    });
+  }
+
+  $('orangeRandom').addEventListener('click', function(){
+    var name = allOrangeNames[Math.floor(Math.random()*allOrangeNames.length)];
+    selectOrange(orangeByName(name));
+  });
+  $('orangeAllToggle').addEventListener('click', function(){
+    var panel = $('orangeAllPanel');
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden){ renderOrangeAll($('orangeSearch').value); $('orangeSearch').focus(); }
+  });
+  $('orangeSearch').addEventListener('input', function(){ renderOrangeAll(this.value); });
+  $('s2cta').addEventListener('click', function(){ state.orangeConfirmed=true; goTo(3); });
+
+  // ---------- SCREEN 3 ----------
+  function renderS3(){
+    $('s3cardIllu').innerHTML = frontImageHTML(state.orange.name)
+      + '<div class="emo-name-bar">'+state.orange.name+'</div>';
+    $('orangeZmysel').textContent = state.orange.zmysel;
+    $('interpYes').classList.toggle('selected', state.interp==='yes');
+    $('interpNo').classList.toggle('selected', state.interp==='no');
+    $('interpOtherBox').classList.toggle('show', state.interp==='no');
+    $('s3cta').disabled = state.interp!=='yes';
+  }
+  $('interpYes').addEventListener('click', function(){ state.interp='yes'; renderS3(); });
+  $('interpNo').addEventListener('click', function(){ state.interp='no'; renderS3(); });
+  $('backToS2').addEventListener('click', function(){ state.interp=null; goTo(2); });
+  $('s3cta').addEventListener('click', function(){ goTo(4); });
+
+  // ---------- SCREEN 4 (green) ----------
+  function greenByName(name){
+    return greenCandidates.find(function(c){return c.name===name;}) || genericGreen(name);
+  }
+  function isGreenSelected(card){ return state.green && card && state.green.name===card.name; }
+
+  function selectGreen(card){
+    state.green = card;
+    state.greenConfirmed = false;
+    $('s4cta').disabled = false;
+    renderGreenReco();
+    if(!$('greenAllPanel').hidden) renderGreenAll($('greenSearch').value);
+  }
+
+  function renderGreenReco(){
+    var wrap = $('greenRecoList'); wrap.innerHTML='';
+    var list = greenCandidates.slice();
+    // if the selection came from outside the 3 recommended, surface it on top
+    if(state.green && !greenCandidates.some(function(c){return c.name===state.green.name;})){
+      list.unshift(state.green);
+    }
+    var selEl = null, selIdx = -1;
+    list.forEach(function(c, i){
+      var sel = isGreenSelected(c);
+      var el = document.createElement('div');
+      el.className = 'emo-flip emo-green' + (sel?' selected flipped':'');
+      var items = (c.potrebujem||[]).map(function(t){ return '<li>'+t+'</li>'; }).join('');
+      el.innerHTML =
+        '<div class="emo-flip-inner">'
+        + '<div class="emo-face emo-face-front">'
+        +   frontImageHTML(c.name,'fig-open')
+        +   '<div class="emo-name-bar">'+c.name+'</div>'
+        + '</div>'
+        + '<div class="emo-face emo-face-back">'
+        +   '<div class="b-name">'+c.name+'</div>'
+        +   '<div class="b-scroll">'
+        +     '<div class="b-kicker">Zmysel emócie</div>'
+        +     '<div class="b-text">'+c.zmysel+'</div>'
+        +     '<div class="b-kicker" style="margin-top:8px;">Čo potrebujem urobiť?</div>'
+        +     '<ul class="b-list">'+items+'</ul>'
+        +   '</div>'
+        +   '<div class="b-hint">ťukni pre návrat ↺</div>'
+        + '</div>'
+        + '</div>';
+      el.addEventListener('click', function(){
+        if(isGreenSelected(c)){
+          el.classList.toggle('flipped');   // already chosen → just flip front/back
+        } else {
+          selectGreen(c);                   // choose it (re-renders flipped to the back)
+        }
+      });
+      wrap.appendChild(el);
+      if(sel){ selEl = el; selIdx = i; }
+    });
+    renderDots('greenDots','greenRecoList', list.length, selIdx>=0 ? selIdx : nearestCarouselIndex('greenRecoList'));
+    if(selEl) centerCarouselCard(selEl, true);
+  }
+
+  function renderGreenAll(filter){
+    var wrap = $('greenAllList');
+    var q = slugify(filter||'');
+    var names = allGreenNames.filter(function(n){ return !q || slugify(n).indexOf(q)>=0; });
+    if(!names.length){ wrap.className=''; wrap.innerHTML = '<div class="all-empty">Nič sa nenašlo.</div>'; return; }
+    wrap.className = 'all-grid'; wrap.innerHTML='';
+    names.forEach(function(name){
+      var cell = document.createElement('div');
+      cell.className = 'all-cell green' + (state.green && state.green.name===name ? ' selected':'');
+      cell.innerHTML = '<div class="all-cell-img">'+frontImageHTML(name,'fig-open')+'</div><div class="all-cell-name">'+name+'</div>';
+      cell.addEventListener('click', function(){ selectGreen(greenByName(name)); });
+      wrap.appendChild(cell);
+    });
+  }
+
+  $('greenAllToggle').addEventListener('click', function(){
+    var panel = $('greenAllPanel');
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden){ renderGreenAll($('greenSearch').value); $('greenSearch').focus(); }
+  });
+  $('greenSearch').addEventListener('input', function(){ renderGreenAll(this.value); });
+  $('s4cta').addEventListener('click', function(){ state.greenConfirmed=true; goTo(5); });
+
+  // ---------- SCREEN 5 ----------
+  var bridgeOverrides = {
+    'bezmocnost|dostojnost':'Namiesto pocitu, že situácia ťa ovláda, ti Dôstojnosť pripomenie, že aj v náročnej chvíli môžeš chrániť svoje hranice a rozhodovať sa sama/sám.',
+    'uzkost|odvaha':'Namiesto úteku pred neistotou ti Odvaha dovolí postaviť sa situácii čelom, aj keď výsledok nepoznáš.',
+    'hnev|nadej':'Namiesto boja s tým, čo sa už stalo, ti Nádej ukáže, že situácia sa môže ešte zmeniť k lepšiemu.'
+  };
+  function renderS5(){
+    $('bridgeFromImg').innerHTML = frontImageHTML(state.orange.name);
+    $('bridgeToImg').innerHTML = frontImageHTML(state.green.name,'fig-open');
+    $('bridgeFrom').textContent = state.orange.name;
+    $('bridgeTo').textContent = state.green.name;
+    $('goalNameInline').textContent = state.green.name;
+    var key = state.orange.id+'|'+state.green.id;
+    var explain = bridgeOverrides[key] || ('Namiesto toho, čo prináša ' + lower(state.orange.name) + ', ti ' + state.green.name + ' dovolí pozrieť sa na situáciu inak a urobiť ďalší krok.');
+    $('bridgeExplain').textContent = explain;
+    $('priceText').textContent = (state.green.potrebujem && state.green.potrebujem[0]) || '—';
+    $('reflectBox').classList.toggle('checked', state.reflectChecked);
+    $('s5cta').disabled = !state.reflectChecked;
+  }
+  $('reflectCheck').addEventListener('click', function(){ state.reflectChecked = !state.reflectChecked; renderS5(); });
+  $('s5cta').addEventListener('click', function(){ goTo(6); });
+
+  // ---------- SCREEN 6 ----------
+  function renderS6(){
+    var wrap = $('stepsList'); wrap.innerHTML='';
+    var options = (state.green.potrebujem||[]).slice();
+    state.stepOptions = options;
+    options.forEach(function(text){
+      var row=document.createElement('div'); row.className='radio-item'+(state.step===text?' selected':'');
+      row.innerHTML = '<div class="radio-dot'+(state.step===text?' on':'')+'"></div><div class="radio-text">'+text+'</div>';
+      row.addEventListener('click', function(){ state.step=text; state.customStep=false; renderS6(); });
+      wrap.appendChild(row);
+    });
+    var customRow=document.createElement('div'); customRow.className='radio-item'+(state.customStep?' selected':'');
+    customRow.innerHTML = '<div class="radio-dot'+(state.customStep?' on':'')+'"></div><div class="radio-text">Vlastný malý krok</div>';
+    customRow.addEventListener('click', function(e){
+      if(e.target.tagName==='TEXTAREA') return;
+      state.customStep=true; renderS6();
+      setTimeout(function(){ var ta=wrap.querySelector('textarea'); if(ta) ta.focus(); },50);
+    });
+    if(state.customStep){
+      var ta=document.createElement('textarea'); ta.placeholder='Napíš svoj vlastný krok…'; ta.value=state.customStepText||'';
+      ta.addEventListener('input', function(){ state.customStepText=ta.value.trim(); state.step=state.customStepText; $('s6cta').disabled = state.customStepText.length<2; });
+      ta.addEventListener('click', function(e){ e.stopPropagation(); });
+      customRow.appendChild(ta);
+    }
+    wrap.appendChild(customRow);
+    $('s6cta').disabled = !state.step || (state.customStep && (!state.customStepText || state.customStepText.length<2));
+  }
+  $('s6cta').addEventListener('click', function(){ goTo(7); });
+
+  // ---------- SCREEN 7 ----------
+  function truncate(s, n){ if(!s) return ''; return s.length>n ? s.slice(0,n).trim()+'…' : s; }
+  function renderS7(){
+    $('s7content').style.display='';
+    $('s7done').style.display='none';
+    var sit = truncate(state.situation, 70);
+    var story = 'Prišiel/prišla si so situáciou „' + sit + '“, v ktorej si cítil/a ' + lower(state.orange.name) + '. Rozhodol/a si sa pre ' + lower(state.green.name) + ', a tvoj prvý krok je: ' + state.step + '.';
+    $('storyText').textContent = story;
+    $('mantraText').textContent = 'Dnes mením ' + lower(state.orange.name) + ' na ' + lower(state.green.name) + ' tým, že urobím jeden malý krok.';
+    $('recapGoal').textContent = state.green.name;
+    $('recapStep').textContent = state.step;
+  }
+  $('s7cta').addEventListener('click', function(){
+    $('s7content').style.display='none';
+    $('s7done').style.display='';
+  });
+  $('restartFromDone').addEventListener('click', resetAll);
+
+  // ---------- BIND DYNAMIC PER SCREEN ----------
+  function bindDynamic(){
+    var current = state.history[state.history.length-1];
+    if(current===2) renderOrangeReco();
+    if(current===3) renderS3();
+    if(current===4) renderGreenReco();
+    if(current===5) renderS5();
+    if(current===6) renderS6();
+    if(current===7) renderS7();
+  }
+
+  // ---------- RESET ----------
+  function resetAll(){
+    situationInput.value='';
+    state = { situation:'', orange:null, orangeConfirmed:false,
+      interp:null, green:null, greenConfirmed:false,
+      reflectChecked:false, step:null, customStep:false, customStepText:'', history:[1] };
+    $('s1cta').disabled = true;
+    $('s2cta').disabled = true;
+    $('s4cta').disabled = true;
+    $('orangeAllPanel').hidden = true;
+    $('orangeSearch').value = '';
+    $('greenAllPanel').hidden = true;
+    $('greenSearch').value = '';
+    renderOrangeReco();
+    $('orangeRecoList').scrollLeft = 0;
+    renderGreenReco();
+    $('greenRecoList').scrollLeft = 0;
+    showScreen(1);
+  }
+
+  // ---------- INIT ----------
+  renderOrangeReco();
+  renderGreenReco();
+  showScreen(1);
+
+})();
+</script>
+</body>
+</html>
