@@ -5,10 +5,11 @@ zvyšok flow (S1, S3–S7) aj Screen 4 (zelené karty) ostáva ako vo v2.
 
 ## Čo sa zmenilo oproti v2 a prečo
 
-- **Zoznam kariet namiesto jednej karty.** Odporúčané karty (3) sa teraz
-  zobrazujú ako **accordion zoznam** — klik kartu rozbalí a označí. Zodpovedá to
-  zdrojovému wireframu (`docs/source/wireframe-0.3.md`), predtým bola len jedna
-  flip-karta + „chip" prepínače.
+- **Centrovaný karusel kariet namiesto jednej karty.** Odporúčané karty (3) sa
+  zobrazujú ako veľké karty na výšku v horizontálnom **snap karuseli** — jedna
+  je vždy vycentrovaná, susedné „nakúsnuté" po stranách, pod karuselom sú
+  navigačné bodky. Ťuk na kartu = výber + otočenie na zadnú stranu (situácia),
+  rovnaká flip mechanika ako pri zelených kartách v kroku 4.
 - **Obrázky na kartách.** Karty načítavajú ilustráciu z `docs/karty/` (súbory
   číslované `1.webp`–`60.webp`, skomprimované z pôvodných CMYK JPG). Priradenie
   číslo→emócia je zatiaľ **provizórne podľa poradia** — treba overiť podľa
@@ -16,9 +17,9 @@ zvyšok flow (S1, S3–S7) aj Screen 4 (zelené karty) ostáva ako vo v2.
   SVG figúrka — žiadne rozbité ikony.
 - **Zrušený modal „všetky karty".** Nahradený **inline panelom** s
   **vyhľadávacím poľom** (filtruje 30 kariet, ignoruje diakritiku).
-- **Bez tlačidla „Áno, toto je ono".** Karta sa potvrdí **výberom** (zvýraznenie)
-  a jedným spodným CTA **„Pokračovať"** — v súlade s princípom „jeden CTA na
-  obrazovku".
+- **Bez tlačidla „Áno, toto je ono".** Karta sa potvrdí **výberom** (oranžový
+  prstenec + vycentrovanie) a jedným spodným CTA **„Pokračovať"** — v súlade
+  s princípom „jeden CTA na obrazovku".
 - **Náhodné odporúčanie.** Tlačidlo „Neviem, čo cítim — vyber za mňa náhodne"
   vyberie a rozbalí náhodnú kartu z 30 pre používateľa, ktorý nevie pomenovať,
   čo cíti.
