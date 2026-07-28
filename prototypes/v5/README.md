@@ -1,7 +1,8 @@
-# v5 — reálne texty všetkých 60 kariet
+# v5 — reálne texty všetkých 60 kariet + oprava výberu mini-kroku
 
 Odvodené z `v4`. Nahrádza mock dáta **skutočným obsahom kariet od Janette**
-(K2 z plánu v5). Vizuálny jazyk a tok S1–S7 ostávajú z v4 nezmenené.
+(K2 z plánu v5) a opravuje bug pri výbere mini-kroku na S6 (K1). Vizuálny
+jazyk a tok S1–S7 ostávajú z v4 nezmenené.
 
 ## Čo sa zmenilo oproti v4
 
@@ -65,6 +66,35 @@ function cardImage(card){ return '../../docs/karty/' + card.n + '.webp'; }
   („potrebuješ: urobiť niečo…“) sa zmenšujú.
 - `esc()` — texty kariet idú do `innerHTML`, escapujú sa.
 
+**K1 — výber mini-kroku na S6 (opravené)**
+
+Bug: pri prepnutí na „Vlastný malý krok“ ostal označený aj predtým vybraný
+predvolený krok.
+
+Príčina nebola v HTML, ale v stave — S6 nemala žiadne `radio` inputy, výber
+kreslila len CSS trieda podľa `state.step`. Kliknutie na „vlastné“ nastavilo
+`state.customStep = true`, ale `state.step` si ďalej držalo text predchádzajúceho
+kroku, takže podmienka `state.step === text` označila aj pôvodný riadok.
+
+Riešenie podľa plánu: ponuka sú teraz **skutočné `input[type=radio]` v jednej
+skupine** (`name="microStep"`, `value="custom"` pre vlastný krok). Výber drží
+prehliadač, takže dve označené možnosti naraz nie sú možné z princípu, nie
+z opatrnosti v kóde. Zvýraznenie riadka ide cez `:has(input:checked)`, bodka
+cez `input:checked + .radio-dot`.
+
+Ďalej:
+- Textové pole je viditeľné len pri zvolenom `custom` a vtedy dostane fokus.
+- CTA „Toto spravím“ je aktívne, len keď je niečo vybrané — pri `custom` až
+  po zadaní aspoň 2 znakov.
+- Pri prepnutí späť na predvolený krok **text vo vlastnom poli ostáva
+  zachovaný**, ale do `state.step` nevstupuje. Používateľ oň nepríde, keď si to
+  rozmyslí, a S7 pritom nikdy nezobrazí „ducha“ starého výberu.
+- S6 sa už neprekresľuje pri každom kliknutí, len pri vstupe na obrazovku —
+  preto textarea nestráca fokus ani obsah. Listenery sú delegované na
+  `#stepsList`.
+- Vedľajší efekt: skupina je ovládateľná z klávesnice (Tab + šípky) a má
+  `:focus-visible` prstenec. Predtým sa S6 klávesnicou prejsť nedala.
+
 **Layout**
 
 - `--cardw`: `clamp(200px, 68vw, 250px)` → `clamp(220px, 82vw, 250px)`.
@@ -79,13 +109,13 @@ function cardImage(card){ return '../../docs/karty/' + card.n + '.webp'; }
   (merané programovo na všetkých 60 kartách), konzola bez chýb.
 - Všetkých 60 obrázkov sa načíta (HEAD 200).
 - Celý tok S1 → S7 vrátane mriežky všetkých kariet a vyhľadávania.
+- K1 podľa akceptačných kritérií: pri opakovanom prepínaní
+  predvolený → vlastné → predvolený je v každom okamihu označená práve jedna
+  možnosť (1 zvýraznený riadok, 1 plná bodka), `state.step` sedí s tým, čo je
+  označené, S7 zobrazí správny krok v oboch vetvách a návrat cez Späť obnoví
+  predchádzajúci výber aj text.
 
 ## Známe ďalšie kroky
 
-- **K1 — bug na S6**: pri výbere „Vlastný malý krok“ ostáva označený aj
-  predtým vybraný predvolený krok. V `renderS6()` sa nastaví
-  `state.customStep = true`, ale `state.step` si drží starú hodnotu, takže
-  podmienka `state.step===text` označí aj pôvodný riadok. **Vo v5 zatiaľ
-  neopravené** (bola to samostatná položka plánu).
 - Obsahová revízia textov — otvorené otázky sú v `docs/texty-kariet-qa.md`.
 - K3 (hosting + Basic Auth), K4 (AI v S2/S7/S1) — viď plán stretnutia.

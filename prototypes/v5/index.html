@@ -194,18 +194,29 @@ textarea{min-height:120px; line-height:1.5;}
 .check-box.checked svg{opacity:1;}
 .check-text{font-size:13.5px; color:var(--ink); line-height:1.45;}
 
-/* ---------- S6 radios ---------- */
+/* ---------- S6 radios ----------
+   Skutočné input[type=radio] v jednej skupine (name="microStep"): výber drží
+   prehliadač, nie CSS trieda. Vďaka tomu nemôžu byť označené dve možnosti
+   naraz a skupina sa dá ovládať šípkami z klávesnice. */
 .radio-item{
-  display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
+  padding:13px 14px;
   border:1px solid var(--line); border-radius:14px; margin-bottom:9px;
-  cursor:pointer; background:#fff; transition:all .15s ease;
+  background:#fff; transition:border-color .15s ease, background .15s ease;
 }
-.radio-item.selected{ border-color:var(--green-deep); background:var(--green-soft2); }
-.radio-dot{ width:18px;height:18px;border-radius:50%; border:1.6px solid var(--ink-faint); flex:none; margin-top:1px; display:flex; align-items:center; justify-content:center; }
-.radio-dot.on{border-color:var(--green-deep);}
-.radio-dot.on::after{content:''; width:9px;height:9px;border-radius:50%;background:var(--green-deep);}
+.radio-item:has(input:checked){ border-color:var(--green-deep); background:var(--green-soft2); }
+.radio-head{ position:relative; display:flex; align-items:flex-start; gap:11px; cursor:pointer; }
+/* radio ostáva fokusovateľný, len ho nevidno a nezaberá miesto vo flex riadku */
+.radio-head input{ position:absolute; width:0; height:0; margin:0; opacity:0; appearance:none; -webkit-appearance:none; }
+.radio-dot{
+  width:18px;height:18px;border-radius:50%; border:1.6px solid var(--ink-faint);
+  flex:none; margin-top:1px; display:flex; align-items:center; justify-content:center;
+  transition:border-color .15s ease;
+}
+.radio-head input:checked + .radio-dot{ border-color:var(--green-deep); }
+.radio-head input:checked + .radio-dot::after{ content:''; width:9px;height:9px;border-radius:50%;background:var(--green-deep); }
+.radio-head input:focus-visible + .radio-dot{ outline:2px solid var(--orange-deep); outline-offset:3px; }
 .radio-text{font-size:14px; line-height:1.45;}
-.radio-item textarea{margin-top:8px; min-height:60px;}
+.radio-item textarea{margin-top:10px; min-height:60px;}
 
 /* ---------- S7 summary ---------- */
 .story-card{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:12px; }
@@ -586,7 +597,8 @@ textarea{min-height:120px; line-height:1.5;}
   var state = {
     situation:'', orange:null, orangeConfirmed:false,
     interp:null, green:null, greenConfirmed:false,
-    reflectChecked:false, step:null, history:[1]
+    reflectChecked:false, step:null, customStep:false, customStepText:'',
+    history:[1]
   };
 
   // ---------- HELPERS ----------
@@ -896,32 +908,72 @@ textarea{min-height:120px; line-height:1.5;}
   $('s5cta').addEventListener('click', function(){ goTo(6); });
 
   // ---------- SCREEN 6 ----------
-  function renderS6(){
-    var wrap = $('stepsList'); wrap.innerHTML='';
-    var options = (state.green.potrebujem||[]).slice();
-    state.stepOptions = options;
-    options.forEach(function(text){
-      var row=document.createElement('div'); row.className='radio-item'+(state.step===text?' selected':'');
-      row.innerHTML = '<div class="radio-dot'+(state.step===text?' on':'')+'"></div><div class="radio-text">'+esc(text)+'</div>';
-      row.addEventListener('click', function(){ state.step=text; state.customStep=false; renderS6(); });
-      wrap.appendChild(row);
-    });
-    var customRow=document.createElement('div'); customRow.className='radio-item'+(state.customStep?' selected':'');
-    customRow.innerHTML = '<div class="radio-dot'+(state.customStep?' on':'')+'"></div><div class="radio-text">Vlastný malý krok</div>';
-    customRow.addEventListener('click', function(e){
-      if(e.target.tagName==='TEXTAREA') return;
-      state.customStep=true; renderS6();
-      setTimeout(function(){ var ta=wrap.querySelector('textarea'); if(ta) ta.focus(); },50);
-    });
-    if(state.customStep){
-      var ta=document.createElement('textarea'); ta.placeholder='Napíš svoj vlastný krok…'; ta.value=state.customStepText||'';
-      ta.addEventListener('input', function(){ state.customStepText=ta.value.trim(); state.step=state.customStepText; $('s6cta').disabled = state.customStepText.length<2; });
-      ta.addEventListener('click', function(e){ e.stopPropagation(); });
-      customRow.appendChild(ta);
-    }
-    wrap.appendChild(customRow);
-    $('s6cta').disabled = !state.step || (state.customStep && (!state.customStepText || state.customStepText.length<2));
+  // Výber drží skupina radio inputov (name="microStep"), nie CSS trieda —
+  // preto nemôže ostať označený starý krok po prepnutí na „vlastné“.
+  // state.step je vždy text, ktorý pôjde do S7; pri „vlastné“ ho drží textarea.
+  var stepsList = $('stepsList');
+  var MIN_CUSTOM = 2;
+
+  function stepRow(value, label){
+    var row = document.createElement('div');
+    row.className = 'radio-item';
+    row.innerHTML =
+      '<label class="radio-head">'
+      +   '<input type="radio" name="microStep" value="'+esc(value)+'">'
+      +   '<span class="radio-dot"></span>'
+      +   '<span class="radio-text">'+esc(label)+'</span>'
+      + '</label>';
+    return row;
   }
+
+  function customTextarea(){ return stepsList.querySelector('.radio-item textarea'); }
+
+  function renderS6(){
+    stepsList.innerHTML = '';
+    state.stepOptions = state.green.potrebujem.slice();
+    state.stepOptions.forEach(function(text){ stepsList.appendChild(stepRow(text, text)); });
+
+    var customRow = stepRow('custom', 'Vlastný malý krok');
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'Napíš svoj vlastný krok…';
+    ta.value = state.customStepText || '';
+    ta.hidden = !state.customStep;
+    customRow.appendChild(ta);
+    stepsList.appendChild(customRow);
+
+    // obnov predchádzajúci výber (návrat cez Späť zo S7)
+    var selected = state.customStep ? 'custom' : state.step;
+    [].forEach.call(stepsList.querySelectorAll('input[name=microStep]'), function(input){
+      input.checked = (selected != null && input.value === selected);
+    });
+    syncS6();
+  }
+
+  function syncS6(){
+    $('s6cta').disabled = state.customStep
+      ? !state.customStepText || state.customStepText.length < MIN_CUSTOM
+      : !state.step;
+  }
+
+  stepsList.addEventListener('change', function(e){
+    if(e.target.name !== 'microStep') return;
+    var ta = customTextarea();
+    state.customStep = (e.target.value === 'custom');
+    // Text vo vlastnom poli ostáva zachovaný, ale kým nie je zvolené „vlastné“,
+    // do state.step nevstupuje — S7 tak nikdy nezobrazí „ducha“ starého výberu.
+    state.step = state.customStep ? (state.customStepText || null) : e.target.value;
+    ta.hidden = !state.customStep;
+    if(state.customStep) ta.focus();
+    syncS6();
+  });
+
+  stepsList.addEventListener('input', function(e){
+    if(e.target.tagName !== 'TEXTAREA') return;
+    state.customStepText = e.target.value.trim();
+    if(state.customStep) state.step = state.customStepText;
+    syncS6();
+  });
+
   $('s6cta').addEventListener('click', function(){ goTo(7); });
 
   // ---------- SCREEN 7 ----------
