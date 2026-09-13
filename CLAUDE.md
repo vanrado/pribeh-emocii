@@ -88,13 +88,20 @@ názov `ANTHROPIC_API_KEY` v tomto projekte nepoužívaj.
   statické prototypy, chráni ich Basic Authom a obsluhuje `POST /api/ai`.
 - Kľúč je výhradne server-side (Cloudflare secret), nikdy nie v klientovi
   ani v GitHub secrets.
-- Endpoint je task-based. Zatiaľ je hotová jedna úloha, `navrhni-karty`
-  (kroky 2 a 4 Core Flow): fencing vstupu proti prompt-injection, strict
-  `json_schema` s `enum` reálnych mien kariet (vymyslená karta je tým
-  štrukturálne nemožná) a guardraily proti diagnózam.
+- Endpoint je task-based (pole `task`). Hotové úlohy:
+  `navrhni-karty` (krok 2; krok 4 s `zatazova` = názov zvolenej záťažovej
+  karty, odpoveď nesie aj `premostenie` pre krok 5), `porozumenie` (krok 3:
+  zmysel emócie v kontexte situácie + reflexná otázka) a `premostenie`
+  (krok 5 pre kartu vybranú mimo návrhu). Spoločné: fencing vstupu proti
+  prompt-injection, strict `json_schema` s `enum` reálnych mien kariet
+  (vymyslená karta je tým štrukturálne nemožná) a guardraily proti diagnózam.
+  Klient posiela len text situácie a názvy kariet — obsah kariet aj prompty
+  ostávajú na serveri.
+- `tools/dev-server.py` servuje prototypy s `/api/ai` bez Basic Auth v
+  prehliadači: mock režim (bez kľúča) alebo proxy na `wrangler dev`.
 - `worker/cards.js` je **generovaný** z `docs/source/texty-kariet.csv`
   cez `python3 tools/csv-to-cards.py` — needituj ručne. Ten istý príkaz
-  generuje aj prehliadačovú verziu `prototypes/v5/cards.js`.
+  generuje aj prehliadačovú verziu `prototypes/v5/cards.js` (v6 a v7 majú kópiu).
 
 Detaily nasadenia, secrets a CI sú v `DEPLOY.md`.
 
