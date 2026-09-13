@@ -29,6 +29,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CSV_PATH = ROOT / "docs" / "source" / "texty-kariet.csv"
 OUT_PATH = ROOT / "prototypes" / "v5" / "cards.js"
+# Tie isté dáta pre Worker. Prehliadač načítava cards.js cez <script src>,
+# takže potrebuje window.CARDS; Worker je ESM a potrebuje export.
+WORKER_OUT_PATH = ROOT / "worker" / "cards.js"
 
 # Redakčná poznámka, ktorá sa omylom dostala do exportu (maď. „nerozumiem“).
 # Nie je to obsah karty — orezáva sa pri importe, ale hlási sa v --report.
@@ -164,8 +167,10 @@ def emit(orange, green):
         lines.append("  ],")
         return "\n".join(lines)
 
-    body = "window.CARDS = {\n" + block("orange", orange) + "\n" + block("green", green) + "\n};\n"
-    OUT_PATH.write_text(header + body, encoding="utf-8")
+    data = "{\n" + block("orange", orange) + "\n" + block("green", green) + "\n};\n"
+    OUT_PATH.write_text(header + "window.CARDS = " + data, encoding="utf-8")
+    WORKER_OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    WORKER_OUT_PATH.write_text(header + "export const CARDS = " + data, encoding="utf-8")
 
 
 def main():
@@ -183,7 +188,7 @@ def main():
 
     emit(orange, green)
     print(f"OK — {len(orange)} oranžových + {len(green)} zelených kariet → "
-          f"{OUT_PATH.relative_to(ROOT)}")
+          f"{OUT_PATH.relative_to(ROOT)} + {WORKER_OUT_PATH.relative_to(ROOT)}")
     if args.report:
         report(orange, green, raw)
 

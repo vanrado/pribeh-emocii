@@ -1,0 +1,4 @@
+# Súbory, ktoré sa cez symlinky dostanú do public/, ale nemajú byť verejné.
+# Syntax je rovnaká ako .gitignore.
+**/README.md
+**/.DS_Store

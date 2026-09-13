@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pribeh-emocii",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-07-28",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // public/ je jediná vec, ktorá sa dostane na verejnú URL. Obsahuje len
+  // symlinky na index.html, prototypes/ a docs/karty/ — takže sa nič
+  // needituje dvakrát, ale zároveň sa nedá omylom publikovať docs/source/,
+  // CLAUDE.md ani .git. Nový verejný obsah = nový symlink (pozri DEPLOY.md).
+  //
+  // run_worker_first: true je tu kľúčové — bez neho by Cloudflare servoval
+  // statické súbory priamo z edge a Basic Auth by sa nikdy nespustil.
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // Secrets (BASIC_AUTH_USER, BASIC_AUTH_PASS, OPENAI_API_KEY) sa
+  // nenastavujú tu — pozri DEPLOY.md. Worker vie čítať aj per-Worker
+  // secrets (`wrangler secret put`), aj Secrets Store binding.
+  //
+  // Pre Secrets Store odkomentuj a doplň store_id:
+  // "secrets_store_secrets": [
+  //   { "binding": "BASIC_AUTH_USER",  "store_id": "<STORE_ID>", "secret_name": "BASIC_AUTH_USER" },
+  //   { "binding": "BASIC_AUTH_PASS",  "store_id": "<STORE_ID>", "secret_name": "BASIC_AUTH_PASS" },
+  //   { "binding": "OPENAI_API_KEY",  "store_id": "<STORE_ID>", "secret_name": "OPENAI_API_KEY" }
+  // ]
+}
