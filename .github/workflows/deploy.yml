@@ -1,0 +1,39 @@
+name: Deploy na Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  # Umožní spustiť deploy ručne z GitHub UI (Actions → tento workflow → Run workflow).
+  workflow_dispatch:
+
+# Dva commity krátko po sebe by inak nasadzovali paralelne a poradie
+# by nebolo zaručené. cancel-in-progress: false = rozbehnutý deploy sa dokončí.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          # Berie verziu z .nvmrc, nech sa CI a lokál nerozídu.
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Musí bežať pred deployom: worker/index.js importuje `openai`,
+      # ktorý wrangler pri buildovaní bundluje.
+      - run: npm ci
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
