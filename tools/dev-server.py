@@ -89,6 +89,15 @@ def mock_response(body):
             "zatazova": {"name": zat}, "akcna": {"name": akc}, "usage": USAGE,
         }
 
+    if task == "zaver":
+        akc = body.get("akcna")
+        krok = body.get("krok") or "tvoj krok"
+        return 200, {
+            "pribeh": f"(mock) Prišiel/prišla si s tým, že nevieš, či stihneš termíny. Pomenoval/a si to ako {zat} — signál, že ti na výsledku záleží. Vybral/a si {akc} a zaviazal/a si sa: {krok}",
+            "mantry": [f"(mock) Moja {akc} sa dnes zmestí do jedného zoznamu.", f"(mock) Jeden krok stačí, aby {zat} nemala posledné slovo."],
+            "zatazova": {"name": zat}, "akcna": {"name": akc}, "usage": USAGE,
+        }
+
     return 400, {"error": f"Mock: neznámy task {task!r}."}
 
 
