@@ -117,7 +117,7 @@ Odhady sú pri **AI-asistovanom tempe vývoja** (Claude Code), v ideálnych člo
 | Modul | Obsah | Odhad |
 |---|---|---|
 | **A. Digitalizácia obsahu kariet** | Prepis plných textov 60 kariet z príručky do štruktúrovaných dát (JSON), overenie a oprava mapovania ilustrácií. *Predpoklad: klient dodá príručku.* Prevažne obsahová, nie programátorská práca | **1–2 dni** |
-| **B. AI integrácia — backend** | Tenký backend/proxy (API kľúč nemôže byť v klientovi), napojenie na Claude API, prompty pre 5 AI úloh + S7 sumár/mantru, RAG nad kartami (pri 60 kartách stačí full-context / jednoduchý retrieval, netreba vektorovú DB), ošetrenie chýb a latencie (loading stavy), sanitizácia AI výstupu v UI | **4–6 dní** |
+| **B. AI integrácia — backend** | Tenký backend/proxy (API kľúč nemôže byť v klientovi), napojenie na OpenAI API, prompty pre 5 AI úloh + S7 sumár/mantru, RAG nad kartami (pri 60 kartách stačí full-context / jednoduchý retrieval, netreba vektorovú DB), ošetrenie chýb a latencie (loading stavy), sanitizácia AI výstupu v UI | **4–6 dní** |
 | **C. Safety Flow** | Detekcia krízových signálov (súčasť AI volania v kroku 1 + priebežne), bezpečnostná obrazovka s krízovými kontaktmi, tvrdé zastavenie flow, testovacie scenáre | **1,5–2,5 dňa** |
 | **D. Perzistencia dát** | Dátový model session, ukladanie (fáza 1: `localStorage`; ak klient chce kontá/synchronizáciu naprieč zariadeniami, pripočítať backend +3–5 dní), obnova rozpracovanej session | **1–2 dni** |
 | **E. S8/S9 História** | Zoznam sessions (radenie, snippet, ikony premeny, status kroku), detail session, status „splnené/naplánované“, prázdny stav | **2–3 dni** |

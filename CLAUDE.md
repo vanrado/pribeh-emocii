@@ -60,7 +60,7 @@ docs/source/  — pôvodné zdrojové dokumenty (pozri vyššie)
 `prototypes/v2/index.html` je samostatný súbor (HTML+CSS+JS, žiadny build
 krok, žiadne závislosti okrem Google Fonts cez CDN). AI návrhy a sumarizácie
 sú zatiaľ **mock dáta** (3 kurátorské karty na každú stranu + fallback pre
-zvyšok), nie živé volania na Claude API.
+zvyšok), nie živé volania na OpenAI API.
 
 ## Vizuálny jazyk (v2)
 
@@ -76,8 +76,27 @@ zvyšok), nie živé volania na Claude API.
 
 1. Safety Flow vetva
 2. S8/S9 (Moja cesta + archív session)
-3. Napojenie na živé Claude API namiesto mock dát
+3. Napojenie frontendu na `/api/ai` namiesto mock dát (backend už stojí)
 4. Rozhodnúť o tech stacku pre finálnu appku (zatiaľ čisté HTML prototypy)
+
+## AI a nasadenie
+
+**Používame OpenAI API, nie Anthropic.** Secret sa volá `OPENAI_API_KEY`;
+názov `ANTHROPIC_API_KEY` v tomto projekte nepoužívaj.
+
+- Integračný bod je `worker/index.js` — Cloudflare Worker, ktorý servuje
+  statické prototypy, chráni ich Basic Authom a obsluhuje `POST /api/ai`.
+- Kľúč je výhradne server-side (Cloudflare secret), nikdy nie v klientovi
+  ani v GitHub secrets.
+- Endpoint je task-based. Zatiaľ je hotová jedna úloha, `navrhni-karty`
+  (kroky 2 a 4 Core Flow): fencing vstupu proti prompt-injection, strict
+  `json_schema` s `enum` reálnych mien kariet (vymyslená karta je tým
+  štrukturálne nemožná) a guardraily proti diagnózam.
+- `worker/cards.js` je **generovaný** z `docs/source/texty-kariet.csv`
+  cez `python3 tools/csv-to-cards.py` — needituj ručne. Ten istý príkaz
+  generuje aj prehliadačovú verziu `prototypes/v5/cards.js`.
+
+Detaily nasadenia, secrets a CI sú v `DEPLOY.md`.
 
 ## Konvencie
 
