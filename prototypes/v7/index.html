@@ -396,6 +396,29 @@ textarea{min-height:120px; line-height:1.5;}
 .reflex-cap{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin-bottom:3px; }
 .reflex-q{ font-family:'Caveat',cursive; font-size:22px; line-height:1.25; color:var(--ink); }
 
+/* ---------- v7: S7 — mantra s výberom a úpravou, skeleton v tmavej karte ---------- */
+.mantra-card .skel-line{
+  background:linear-gradient(100deg,rgba(255,255,255,.10) 30%,rgba(255,255,255,.26) 50%,rgba(255,255,255,.10) 70%);
+  background-size:220% 100%;
+}
+.mantra-actions{ display:flex; gap:8px; justify-content:center; margin-top:12px; }
+.btn-mini{
+  appearance:none; background:transparent; color:var(--paper); cursor:pointer;
+  border:1px solid rgba(244,238,226,.38); border-radius:999px; padding:6px 13px;
+  font-family:'Work Sans',sans-serif; font-size:12px; font-weight:500;
+}
+.btn-mini:hover{ background:rgba(255,255,255,.08); }
+.btn-mini:focus-visible{ outline:2px solid var(--orange); outline-offset:2px; }
+.mantra-card textarea.mantra-edit{
+  width:100%; min-height:0; margin-top:2px; padding:8px 10px; resize:none;
+  font-family:'Caveat',cursive; font-size:24px; line-height:1.3; text-align:center;
+  background:rgba(255,255,255,.08); color:var(--paper);
+  border:1px solid rgba(244,238,226,.38); border-radius:12px;
+}
+.mantra-card textarea.mantra-edit:focus{ border-color:var(--paper); box-shadow:none; }
+.recap-item .sub{ display:block; font-weight:400; font-size:12px; line-height:1.4; color:var(--ink-soft); margin-top:3px; }
+.done-state .btn-primary{ margin-bottom:10px; }
+
 /* Safety Flow — PLACEHOLDER. Nie je to hotová bezpečnostná obrazovka. */
 .safety-overlay{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(30,24,17,.55); padding:20px; }
 .safety-box{ background:var(--paper); border-radius:var(--radius-card); padding:22px 20px; max-width:420px; box-shadow:0 24px 60px -20px rgba(40,30,15,.6); }
@@ -596,6 +619,11 @@ textarea{min-height:120px; line-height:1.5;}
         <div class="mantra-card">
           <div class="cap">Sila okamihu</div>
           <div class="txt" id="mantraText">—</div>
+          <textarea class="mantra-edit" id="mantraEdit" rows="2" hidden aria-label="Upraviť mantru"></textarea>
+          <div class="mantra-actions" id="mantraActions" hidden>
+            <button class="btn-mini" id="mantraOther" type="button">Iná</button>
+            <button class="btn-mini" id="mantraEditBtn" type="button">Upraviť</button>
+          </div>
         </div>
 
         <div class="recap">
@@ -603,13 +631,16 @@ textarea{min-height:120px; line-height:1.5;}
           <div class="recap-item"><span class="k">Môj krok</span><span class="v" id="recapStep">—</span></div>
         </div>
 
-        <button class="btn btn-primary" id="s7cta">Hotovo · Uložiť session</button>
+        <button class="btn btn-primary" id="s7cta">Hotovo</button>
       </div>
 
+      <!-- Prototyp nič neukladá (účty a história sú mimo rozsahu) — namiesto
+           falošného „uložené“ si človek odnesie plán do schránky. -->
       <div id="s7done" style="display:none;" class="done-state">
         <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
-        <h2>Session uložená</h2>
-        <p>Tvoja cesta zmeny je súčasťou histórie „Moja cesta“.</p>
+        <h2>Mám plán.</h2>
+        <p>Príbeh, mantra a krok sú pripravené — skopíruj si ich do poznámok.</p>
+        <button class="btn btn-primary" id="copyPlan" type="button">Skopírovať môj plán</button>
         <button class="btn btn-outline" id="restartFromDone" style="width:100%;">Spustiť znova</button>
       </div>
     </section>
@@ -670,7 +701,8 @@ textarea{min-height:120px; line-height:1.5;}
       orange:'idle', orangeFor:null, orangeSeq:0,
       green:'idle',  greenFor:null,  greenSeq:0,
       porozumenie:'idle', porozumenieFor:null, porozumenieSeq:0, porozumenieData:null,
-      pribeh:'idle', pribehFor:null, pribehSeq:0, pribehData:null
+      pribeh:'idle', pribehFor:null, pribehSeq:0, pribehData:null,
+      zaver:'idle', zaverFor:null, zaverSeq:0, zaverData:null
     };
   }
   var ai = novyAiStav();
@@ -680,7 +712,7 @@ textarea{min-height:120px; line-height:1.5;}
     situation:'', orange:null, orangeConfirmed:false,
     interp:null, green:null, greenConfirmed:false,
     reflectChecked:false, step:null, customStep:false, customStepText:'',
-    history:[1]
+    mantraIdx:0, mantraText:null, history:[1]
   };
 
   // ---------- HELPERS ----------
@@ -877,6 +909,46 @@ textarea{min-height:120px; line-height:1.5;}
       var s = aktualnaObrazovka();
       if(s === 5) renderS5();
       if(s === 6 && !state.step && !state.customStep) renderS6();
+    });
+  }
+
+  // S7: zrkadlo cesty + dva varianty mantry. Prefetch pri výbere kroku na S6
+  // (radio); pri vlastnom kroku sa volá až pri „Toto spravím“ — inak by každá
+  // pauza v písaní stála volanie. Záloha = šablóny zo v6 (bez orezu v strede slova).
+  var zaverTimer = null;
+  function naplanujZaver(){ clearTimeout(zaverTimer); zaverTimer = setTimeout(nacitajZaver, 350); }
+  function zaverKluc(){ return kluc(state.situation, state.orange.name, state.green.name, state.step); }
+  function zaverPlatny(){ return !!(state.orange && state.green && state.step) && ai.zaverFor === zaverKluc(); }
+  function cenaZoS5(){
+    var pd = pribehPlatny() && ai.pribeh === 'ok' ? ai.pribehData : null;
+    return pd && pd.cena && state.green.potrebujem[pd.cena.index] != null ? pd.cena.index : null;
+  }
+
+  function nacitajZaver(){
+    if(!state.orange || !state.green || !state.step || state.step.length < 2) return;
+    var k = zaverKluc();
+    if(ai.zaverFor === k && (ai.zaver === 'loading' || ai.zaver === 'ok')) return;
+    var seq = ++ai.zaverSeq;
+    ai.zaver = 'loading'; ai.zaverFor = k; ai.zaverData = null;
+    state.mantraIdx = 0; state.mantraText = null;          // nový záver = nový výber mantry
+    if(aktualnaObrazovka() === 7) renderS7();
+
+    var body = { task:'zaver', situacia: state.situation, zatazova: state.orange.name, akcna: state.green.name, krok: state.step };
+    var cenaIdx = cenaZoS5();
+    if(cenaIdx !== null) body.cena_index = cenaIdx;
+    postAi(body).then(function(res){
+      if(seq !== ai.zaverSeq) return;
+      var mantry = (res.mantry || []).filter(Boolean);
+      if(!res.pribeh || !mantry.length) throw new Error('odpoveď neobsahovala príbeh alebo mantru');
+      ai.zaverData = { pribeh: res.pribeh, mantry: mantry };
+      ai.zaver = 'ok';
+      console.info('[AI] zaver → ' + res.pribeh + '  | mantry: ' + mantry.join(' / ') + tokeny(res));
+      if(aktualnaObrazovka() === 7) renderS7();
+    }).catch(function(err){
+      if(seq !== ai.zaverSeq) return;
+      console.error('[AI] zaver — zlyhal, beriem šablóny:', err);
+      ai.zaver = 'fallback';
+      if(aktualnaObrazovka() === 7) renderS7();
     });
   }
 
@@ -1310,6 +1382,7 @@ textarea{min-height:120px; line-height:1.5;}
     ta.hidden = !state.customStep;
     if(state.customStep) ta.focus();
     syncS6();
+    if(!state.customStep) naplanujZaver();                 // prefetch záveru pre zvolený krok
   });
 
   stepsList.addEventListener('input', function(e){
@@ -1319,25 +1392,130 @@ textarea{min-height:120px; line-height:1.5;}
     syncS6();
   });
 
-  $('s6cta').addEventListener('click', function(){ goTo(7); });
+  $('s6cta').addEventListener('click', function(){ nacitajZaver(); goTo(7); });
 
   // ---------- SCREEN 7 ----------
-  function truncate(s, n){ if(!s) return ''; return s.length>n ? s.slice(0,n).trim()+'…' : s; }
+  // Záložný citát zo S1: orezať na koniec vety, inak aspoň na hranicu slova —
+  // nikdy v strede slova („…nechce s…“).
+  function orezNaVetu(s, max){
+    s = (s||'').trim();
+    if(s.length <= max) return s;
+    var cut = s.slice(0, max), m = cut.search(/[.!?][^.!?]*$/);
+    if(m >= max*0.4) return cut.slice(0, m+1);              // celá veta — bez „…“
+    m = cut.lastIndexOf(' ');
+    return cut.slice(0, m>0 ? m : max).replace(/[,;:\s]+$/,'') + '…';
+  }
   // Kroky z karty už bodku majú, vlastný krok od používateľa spravidla nie.
   function endSentence(s){ return /[.!?…]$/.test(s||'') ? s : s+'.'; }
+  function sablonaPribehu(){
+    return 'Prišiel/prišla si so situáciou „' + orezNaVetu(state.situation, 120) + '“, v ktorej si cítil/a '
+      + lower(akuzativ(state.orange.name)) + '. Rozhodol/a si sa pre ' + lower(akuzativ(state.green.name))
+      + ', a tvoj prvý krok je: ' + endSentence(state.step);
+  }
+  function sablonaMantry(){
+    return 'Dnes mením ' + lower(akuzativ(state.orange.name)) + ' na ' + lower(akuzativ(state.green.name)) + ' tým, že urobím jeden malý krok.';
+  }
+  function zaverData(){ return zaverPlatny() && ai.zaver === 'ok' ? ai.zaverData : null; }
+  // Mantra = to, čo si používateľ upravil; inak zvolený variant od modelu; inak šablóna.
+  function aktualnaMantra(){
+    if(state.mantraText) return state.mantraText;
+    var zd = zaverData();
+    return zd ? zd.mantry[state.mantraIdx % zd.mantry.length] : sablonaMantry();
+  }
+  function cenaText(){
+    var i = cenaZoS5();
+    return i === null ? '' : lowerFirst(state.green.potrebujem[i]);
+  }
+
   function renderS7(){
     $('s7content').style.display='';
     $('s7done').style.display='none';
-    var sit = truncate(state.situation, 70);
-    var story = 'Prišiel/prišla si so situáciou „' + sit + '“, v ktorej si cítil/a ' + lower(akuzativ(state.orange.name)) + '. Rozhodol/a si sa pre ' + lower(akuzativ(state.green.name)) + ', a tvoj prvý krok je: ' + endSentence(state.step);
-    $('storyText').textContent = story;
-    $('mantraText').textContent = 'Dnes mením ' + lower(akuzativ(state.orange.name)) + ' na ' + lower(akuzativ(state.green.name)) + ' tým, že urobím jeden malý krok.';
-    $('recapGoal').textContent = state.green.name;
+    var zd = zaverData(), loading = zaverPlatny() && ai.zaver === 'loading';
+
+    $('storyText').setAttribute('aria-busy', loading ? 'true' : 'false');
+    if(loading) $('storyText').innerHTML = skelTextHTML(4);
+    else $('storyText').textContent = zd ? zd.pribeh : sablonaPribehu();
+
+    $('mantraEdit').hidden = true;
+    $('mantraText').hidden = false;
+    if(loading){
+      $('mantraText').innerHTML = skelTextHTML(2);
+      $('mantraActions').hidden = true;
+    } else {
+      $('mantraText').textContent = aktualnaMantra();
+      $('mantraActions').hidden = false;
+      $('mantraOther').hidden = !(zd && zd.mantry.length > 1);
+    }
+
+    var cena = cenaText();
+    $('recapGoal').innerHTML = esc(state.green.name) + (cena ? '<span class="sub">' + esc(cena) + '</span>' : '');
     $('recapStep').textContent = state.step;
+  }
+
+  // Copilot, nie Autopilot: mantru si človek vie vymeniť za druhý variant alebo prepísať.
+  $('mantraOther').addEventListener('click', function(){ state.mantraIdx += 1; state.mantraText = null; renderS7(); });
+  $('mantraEditBtn').addEventListener('click', function(){
+    var ta = $('mantraEdit');
+    ta.value = aktualnaMantra();
+    $('mantraText').hidden = true; $('mantraActions').hidden = true; ta.hidden = false;
+    ta.focus(); ta.select();
+  });
+  function ulozMantru(){
+    var v = $('mantraEdit').value.trim();
+    if(v) state.mantraText = v;                             // prázdne = ponechať pôvodnú
+    renderS7();
+  }
+  $('mantraEdit').addEventListener('blur', ulozMantru);
+  $('mantraEdit').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); ulozMantru(); }
+    if(e.key === 'Escape'){ $('mantraEdit').value = ''; ulozMantru(); }
+  });
+
+  function textPlanu(){
+    var zd = zaverData(), cena = cenaText();
+    return [
+      'Môj príbeh zmeny · ' + new Date().toLocaleDateString('sk-SK'),
+      '',
+      zd ? zd.pribeh : sablonaPribehu(),
+      '',
+      'Sila okamihu',
+      '„' + aktualnaMantra() + '“',
+      '',
+      'Cieľ: ' + state.green.name + (cena ? ' — ' + cena : ''),
+      'Krok: ' + state.step
+    ].join('\n');
+  }
+  // Clipboard API môže byť nedostupné (http) alebo odmietnuté (bez fokusu) —
+  // vtedy sa skúsi staršia cesta cez skrytý textarea + execCommand.
+  function skopirujStaro(text){
+    return new Promise(function(resolve, reject){
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly',''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch(e){ ok = false; }
+      ta.remove();
+      ok ? resolve() : reject(new Error('execCommand copy zlyhal'));
+    });
+  }
+  function skopiruj(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text).catch(function(){ return skopirujStaro(text); });
+    }
+    return skopirujStaro(text);
   }
   $('s7cta').addEventListener('click', function(){
     $('s7content').style.display='none';
     $('s7done').style.display='';
+    $('copyPlan').textContent = 'Skopírovať môj plán';
+  });
+  $('copyPlan').addEventListener('click', function(){
+    var btn = this;
+    skopiruj(textPlanu()).then(
+      function(){ btn.textContent = 'Skopírované ✓'; },
+      function(){ btn.textContent = 'Nepodarilo sa skopírovať'; }
+    );
+    setTimeout(function(){ btn.textContent = 'Skopírovať môj plán'; }, 2400);
   });
   $('restartFromDone').addEventListener('click', resetAll);
 
@@ -1357,7 +1535,8 @@ textarea{min-height:120px; line-height:1.5;}
     situationInput.value='';
     state = { situation:'', orange:null, orangeConfirmed:false,
       interp:null, green:null, greenConfirmed:false,
-      reflectChecked:false, step:null, customStep:false, customStepText:'', history:[1] };
+      reflectChecked:false, step:null, customStep:false, customStepText:'',
+      mantraIdx:0, mantraText:null, history:[1] };
     $('s1cta').disabled = true;
     $('s2cta').disabled = true;
     ai = novyAiStav();

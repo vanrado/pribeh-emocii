@@ -1,6 +1,7 @@
-# Prototyp v7 — AI v porozumení (S3), výbere smeru (S4), príbehu zmeny (S5) a mini-krokoch (S6)
+# Prototyp v7 — AI v porozumení (S3), výbere smeru (S4), príbehu zmeny (S5), mini-krokoch (S6) a závere (S7)
 
-Odvodené z `v6`. Dopĺňa fázy 3, 4 a 5 z `docs/source/integracia-ai-do-mvp-koucingoveho-toku.md`.
+Odvodené z `v6`. Dopĺňa fázy 3, 4 a 5 z `docs/source/integracia-ai-do-mvp-koucingoveho-toku.md`
+a záver podľa wireframu 0.3 (S7 = „kognitívne uzavretie“).
 Obsah kariet sa nemení a Janettine texty ostávajú všade viditeľné; mení sa,
 čo k nim appka pridá na mieru situácii.
 
@@ -38,6 +39,32 @@ tabuľka `bridgeOverrides` z v4 a šablóna, na S6 = body z karty — presne v6.
 Prompt výslovne zakazuje sľubovať výsledok („dopadne to dobre“) — pri karte
 Nádej je to najľahšie pokušenie a zároveň Lumosity-pravidlo z júlového
 stretnutia.
+
+**S7 — zrkadlo cesty.** Wireframe žiada na S7 AI sumár aj AI mantru a to, čo
+v6 zobrazovala, bola doslova jeho *šablóna* (plus citát zo S1 orezaný v strede
+slova). Úloha `zaver` dostane situáciu, obe karty, zvolený krok (aj vlastný —
+fencovaný ako situácia) a index ceny zo S5, a vráti:
+
+- `pribeh` — 3–4 vety: s čím prišiel (jedna jeho fráza, nie citát), čo
+  pomenoval a čo mu to signalizuje, čo si vybral a prečo, krok ako záväzok.
+  Opisuje, čo **urobil** — nie čo sa stane.
+- `mantry` — dva varianty krátkej vety v 1. osobe. Na S7 sa ukáže jedna,
+  pod ňou **„Iná“** (druhý variant) a **„Upraviť“** (inline). Mantra je
+  najosobnejší artefakt appky — tu je „Copilot, nie Autopilot“ vidieť.
+
+Prefetch pri výbere kroku na S6 (radio); pri vlastnom kroku až pri „Toto
+spravím“, inak by každá pauza v písaní stála volanie. „Môj cieľ“ nesie aj
+cenu za zmenu zo S5, nech S5 a S7 hovoria to isté. Záloha = šablóny z v6,
+citát orezaný na koniec vety alebo slova.
+
+Zo vzoru vo wireframe sme vedome vynechali záverečné „Si na ceste k zvládnutiu
+tejto výzvy“ — je to sľub výsledku (rovnaké pravidlo ako na S5) — a „smart
+notifikáciu“, ktorá je v rozpore so *žiadne notifikácie* v špecifikácii.
+
+**Odchod s niečím v ruke.** „Uložiť session“ v prototype klamalo (nič sa
+neukladá, účty a história sú mimo rozsahu). CTA je teraz „Hotovo“ a v hotovom
+stave **„Skopírovať môj plán“** — príbeh, mantra, cieľ s cenou a krok do
+schránky, nech si to človek vloží do poznámok.
 
 ### Krok 6 je experiment — čo povedať Janette
 
@@ -87,6 +114,7 @@ Každá úloha má kľúč vstupov, pre ktoré výsledok platí:
 | `green` | situácia + oranžová karta | trojica z v5 + veta pod karuselom |
 | `porozumenie` | situácia + oranžová karta | „Zmysel emócie“ z karty (ako v6) |
 | `pribeh` | situácia + oranžová + zelená | S5: `bridgeOverrides`, potom šablóna; S6: body z karty (ako v6) |
+| `zaver` | situácia + oranžová + zelená + krok | šablóny z v6 (príbeh aj mantra), mantra ostáva upraviteľná |
 
 Keď sa používateľ vráti a niečo zmení, kľúč nesedí a volá sa znova; odpovede,
 ktoré dobehnú po zmene vstupu, sa zahodia (`*Seq`). Zmena zelenej karty
@@ -94,7 +122,7 @@ zároveň zruší už vybraný mini-krok — krok z inej karty nesmie prežiť j
 zmenu (latentná chyba z v5).
 
 Všetky AI texty sa logujú do konzoly (`[AI] porozumenie …`, `[AI] green …`,
-`[AI] pribeh …`) aj s počtom tokenov — to je surovina na vyhodnotenie
+`[AI] pribeh …`, `[AI] zaver …`) aj s počtom tokenov — to je surovina na vyhodnotenie
 experimentu (latencia, kvalita slovenčiny, ako často používateľ návrh odmietne).
 
 ## Ako to spustiť
@@ -123,7 +151,7 @@ Mock mení zelený návrh podľa `zatazova` a pozná markery v texte situácie:
 
 - **Safety Flow** — stále len dočasná zástava, nie bezpečnostná obrazovka zo
   špecifikácie (viď v6).
-- **S1** zhrnutie situácie a **S7** sumár + mantra — stále šablóny.
+- **S1** zhrnutie situácie (fáza 1 zo špecu) — stále nie je nikde.
 - **S6 je experiment** (viď vyššie) — rozhodnutie, či AI kroky ostanú, je na
   Janette; body z karty ostávajú v každom prípade.
 - **Rate limit / strop nákladov** na `/api/ai` — plán ho vyžaduje, Worker ho nemá.
