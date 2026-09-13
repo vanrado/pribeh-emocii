@@ -105,15 +105,30 @@
     <p class="lede">
       Digitalizácia fyzických sebapoznávacích kariet do koučingovej webovej
       appky. Nižšie sú klikacie prototypy Core Flow (S1–S7). Texty kariet sú
-      od v5 skutočné; od v6 je aj výber odporúčaných kariet živý — beží cez
-      OpenAI na serveri, nie z mock dát.
+      od v5 skutočné; od v6 je výber odporúčaných kariet živý — beží cez
+      OpenAI na serveri, nie z mock dát — a v7 pridáva AI do porozumenia
+      emócii a do premostenia medzi kartami.
     </p>
 
     <div class="cards">
+      <a class="card" href="prototypes/v7/">
+        <span class="arrow">→</span>
+        <div class="card-top">
+          <span class="badge primary">v7 · aktuálna</span>
+          <span class="tag">AI v krokoch 3, 4 a 5</span>
+        </div>
+        <h2>Prototyp v7</h2>
+        <p>Akčné karty sa vyberajú podľa zvolenej záťažovej karty, nie len podľa
+        situácie. Krok 3 vysvetlí zmysel emócie v kontexte situácie a položí
+        otázku na zamyslenie; krok 5 dostane premostenie od modelu. Pri zlyhaní
+        každá obrazovka spadne na správanie z v6. Vyžaduje Worker
+        (<code>npm run dev</code>) alebo <code>tools/dev-server.py</code>.</p>
+      </a>
+
       <a class="card" href="prototypes/v6/">
         <span class="arrow">→</span>
         <div class="card-top">
-          <span class="badge primary">v6 · aktuálna</span>
+          <span class="badge muted">v6 · predošlá</span>
           <span class="tag">živé AI návrhy kariet</span>
         </div>
         <h2>Prototyp v6</h2>
@@ -126,7 +141,7 @@
       <a class="card" href="prototypes/v5/">
         <span class="arrow">→</span>
         <div class="card-top">
-          <span class="badge muted">v5 · predošlá</span>
+          <span class="badge muted">v5</span>
           <span class="tag">reálne texty všetkých 60 kariet</span>
         </div>
         <h2>Prototyp v5</h2>
