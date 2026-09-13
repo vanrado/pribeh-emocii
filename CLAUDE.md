@@ -29,7 +29,9 @@ zaostávať alebo obsahovať dočasné mock dáta).
 - **RAG striktne z obsahu kariet** — žiadne vymyslené terapeutické tvrdenia
   ani diagnózy.
 - **Safety Flow** — pri detekcii krízy (beznádej, sebapoškodzovanie) sa tok
-  okamžite preruší. (Zatiaľ nie je implementované v prototype.)
+  okamžite preruší. (V prototype v7: model vracia `kriza`, klient ukáže modal
+  s krízovými kontaktmi, ale tok zámerne neblokuje — tvrdé zastavenie je
+  otvorené rozhodnutie pre klientku.)
 - Žiadna gamifikácia, streaky, notifikácie, dlhodobé plánovanie. Jedna
   session = jeden problém.
 
@@ -106,7 +108,9 @@ názov `ANTHROPIC_API_KEY` v tomto projekte nepoužívaj.
   cez `python3 tools/csv-to-cards.py` — needituj ručne. Ten istý príkaz
   generuje aj prehliadačovú verziu `prototypes/v5/cards.js` (v6 a v7 majú kópiu).
 
-Detaily nasadenia, secrets a CI sú v `DEPLOY.md`.
+Ako AI funguje krok po kroku (kde vstupuje, prompty, schémy, zálohy,
+latencia) je v `docs/ako-funguje-ai.md`. Detaily nasadenia, secrets a CI sú
+v `DEPLOY.md`. Aktuálny stav appky a use-casy: `STATUS_REPORT.md`.
 
 ## Konvencie
 

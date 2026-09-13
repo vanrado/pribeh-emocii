@@ -115,7 +115,9 @@ npm run tail
 ## Kontrakt `/api/ai`
 
 Endpoint je task-based — ako `/api/study-summary` vo `frontend-patient`.
-Zatiaľ je implementovaná jedna úloha (krok S2/S4 Core Flow):
+Úlohy: `navrhni-karty` (S2, S4), `porozumenie` (S3), `pribeh-zmeny` (S5 + S6),
+`zaver` (S7). **Kompletný popis každej úlohy, promptov, schém a zobrazenia je
+v `docs/ako-funguje-ai.md`** — tu je len tvar prvej úlohy ako ukážka kontraktu:
 
 ```
 POST /api/ai
@@ -159,16 +161,15 @@ Latencia 2,4–3,2 s.
 
 ### Čo ešte nie je hotové
 
-- **Napojený je len `prototypes/v6/`** (kroky 2 a 4). v5 a staršie zostávajú
-  zámerne na mock dátach ako demo verzia bez kreditu.
-- **Safety Flow.** Pri `kriza: true` ukáže v6 dočasnú zástavu, ale **nie je
-  to bezpečnostná obrazovka zo špecifikácie**: tok sa tvrdo nepreruší a krízové
-  kontakty sú prázdny placeholder — čísla musí dodať klient. Navyše je to jeden
-  boolean od LLM, nie spoľahlivá detekcia. Kým to nie je dorobené, appka
-  nepatrí pred reálnych používateľov.
-- **Zvyšné 4 AI úlohy** (zhrnutie situácie, kontextové vysvetlenie,
-  premostenie, mini-kroky + sumár/mantra na S7) sa pridávajú do `ULOHY`
-  vo `worker/index.js` rovnakým spôsobom.
+- **Napojené sú `prototypes/v6/`** (kroky 2 a 4) **a `prototypes/v7/`**
+  (kroky 2–7). v5 a staršie zostávajú zámerne na mock dátach ako demo verzia
+  bez kreditu.
+- **Safety Flow.** Pri `kriza: true` ukáže v7 modal s reálnymi krízovými
+  kontaktmi (neblokuje). Špecifikácia žiada tvrdé zastavenie toku — rozhodnutie
+  pre klientku, rovnako ako potvrdenie čísel pred ostrým spustením. Detekcia je
+  jeden boolean od LLM, nie spoľahlivá klasifikácia.
+- **Zhrnutie situácie** (fáza 1 špecifikácie) a **rate limit / strop nákladov**
+  na `/api/ai` — heslo Basic Authu je zdieľané.
 
 ### Karty na serveri
 
