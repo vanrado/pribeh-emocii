@@ -59,11 +59,7 @@ def mock_response(body):
         if body.get("balicek") == "akcne":
             mena = MOCK_AKCNE.get(zat, MOCK_AKCNE[None])
             karty = [
-                {
-                    "name": m,
-                    "preco": f"(mock) {m} sedí na to, čo si opísal/a, a odpovedá na {zat or 'tvoju situáciu'}.",
-                    "premostenie": f"(mock) Namiesto toho, čo s tebou robí {zat or 'záťaž'}, ti {m} dovolí urobiť v tejto situácii jeden krok inak.",
-                }
+                {"name": m, "preco": f"(mock) {m} sedí na to, čo si opísal/a, a odpovedá na {zat or 'tvoju situáciu'}."}
                 for m in mena
             ]
             return 200, {"karty": karty, "kriza": kriza, "balicek": "akcne",
@@ -78,10 +74,18 @@ def mock_response(body):
             "zatazova": {"name": zat}, "usage": USAGE,
         }
 
-    if task == "premostenie":
+    if task == "pribeh-zmeny":
         akc = body.get("akcna")
         return 200, {
-            "premostenie": f"(mock, samostatné volanie) Namiesto toho, čo s tebou robí {zat}, ti {akc} dovolí pozrieť sa na situáciu z odstupu a urobiť jeden krok.",
+            "teraz": f"(mock) {zat} ťa teraz drží v čakaní — kým sa niečo nerozhodne, neurobíš nič.",
+            "most": f"(mock) {akc} ti dovolí urobiť prvý krok skôr, než budeš mať istotu, ako to dopadne.",
+            # index 1 zámerne — vo v6 sa vždy bral prvý bod, tu má byť vidieť, že model vyberá
+            "cena": {"index": 1, "text": None, "v_situacii": f"(mock) V tvojom prípade to znamená všímať si aj to, čo sa dnes podarilo, nie len čo visí vo vzduchu."},
+            "mikrokroky": [
+                {"text": "(mock) Napíš si tri veci, ktoré sa dnes podarili.", "lahsi": False},
+                {"text": "(mock) Povedz jednému človeku, čo od situácie čakáš.", "lahsi": False},
+                {"text": "(mock) Otvor si poznámky a napíš jednu vetu o tom, čo cítiš.", "lahsi": True},
+            ],
             "zatazova": {"name": zat}, "akcna": {"name": akc}, "usage": USAGE,
         }
 

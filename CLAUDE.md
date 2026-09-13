@@ -90,9 +90,10 @@ názov `ANTHROPIC_API_KEY` v tomto projekte nepoužívaj.
   ani v GitHub secrets.
 - Endpoint je task-based (pole `task`). Hotové úlohy:
   `navrhni-karty` (krok 2; krok 4 s `zatazova` = názov zvolenej záťažovej
-  karty, odpoveď nesie aj `premostenie` pre krok 5), `porozumenie` (krok 3:
-  zmysel emócie v kontexte situácie + reflexná otázka) a `premostenie`
-  (krok 5 pre kartu vybranú mimo návrhu). Spoločné: fencing vstupu proti
+  karty), `porozumenie` (krok 3: zmysel emócie v kontexte situácie +
+  reflexná otázka) a `pribeh-zmeny` (kroky 5 a 6: „teraz“ + „most“, výber
+  „ceny za zmenu“ z bodov akčnej karty cez `cena_index` + jej preklad do
+  situácie, 2–4 mikro-kroky). Spoločné: fencing vstupu proti
   prompt-injection, strict `json_schema` s `enum` reálnych mien kariet
   (vymyslená karta je tým štrukturálne nemožná) a guardraily proti diagnózam.
   Klient posiela len text situácie a názvy kariet — obsah kariet aj prompty
