@@ -9,11 +9,12 @@
  * AI úlohy (pole `task` v tele requestu) a fázy Core Flow, ktoré pokrývajú:
  *   navrhni-karty   balicek=zatazove → S2: 3 záťažové karty + „preco“ + kriza
  *                   balicek=akcne    → S4: 3 akčné karty podľa situácie A ZVOLENEJ
- *                                      záťažovej karty + „preco“ + „premostenie“ (S5)
+ *                                      záťažovej karty + „preco“
  *   porozumenie     → S3: zmysel zvolenej záťažovej emócie v kontexte situácie
  *                     + jedna reflexná otázka
- *   premostenie     → S5: most záťažová → akčná pre kartu, ktorú si používateľ
- *                     vybral mimo troch navrhnutých (tie majú premostenie už z S4)
+ *   pribeh-zmeny    → S5 + S6 pre zvolenú dvojicu kariet: „teraz“ a „most“
+ *                     (príbeh zmeny), výber „ceny za zmenu“ z bodov akčnej karty
+ *                     + jej preklad do situácie, a 2–4 mikro-kroky
  */
 
 import OpenAI from "openai";
@@ -214,7 +215,6 @@ Používateľ opísal situáciu a vybral si záťažovú kartu — tú, ktorá p
 - Akčná emócia má odpovedať na zmysel záťažovej karty (na stratu kontroly odpovedá napríklad hranica alebo prijatie, na strach odvaha alebo dôvera) — nie náhodná „pozitívna“ emócia.
 - Vyberaj VÝHRADNE z priloženého zoznamu akčných kariet. Nikdy nevymýšľaj názvy, ktoré v ňom nie sú.
 - „preco“: jedna veta, prečo práve táto karta sedí na jeho situáciu a emóciu. Max 25 slov.
-- „premostenie“: jedna až dve vety, ktoré prepoja záťažovú emóciu s touto akčnou — čo mu táto emócia v jeho situácii dovolí urobiť inak než to, čo s ním teraz robí záťažová. Názov akčnej karty píš s veľkým písmenom. Vzor tónu: ${VZOR_PREMOSTENIA} Max 40 slov.
 - Ak záťažová karta v zadaní chýba, vyberaj podľa situácie.`;
 
 const ULOHA_POROZUMENIE = `TVOJA ÚLOHA
@@ -222,13 +222,19 @@ Používateľ opísal situáciu a vybral si záťažovú kartu. Vysvetli mu, čo
 - „zmysel“: 2–3 vety, max 60 slov. Vychádzaj zo „zmyslu emócie“ a zo situácií na karte a ukotvi ich v tom, čo napísal — odkáž na konkrétnu vec z jeho textu, ale neopakuj ho doslova. Povedz, na čo ho emócia upozorňuje alebo čo chráni.
 - „otazka“: jedna otvorená otázka na zamyslenie (nie áno/nie), ktorá mu pomôže pozrieť sa na situáciu cez tento signál. Vychádza z karty, nie z terapeutických techník. Max 20 slov. Ak nemáš dobrú otázku, nechaj prázdny reťazec — lepšie žiadna než formálna.`;
 
-const ULOHA_PREMOSTENIE = `TVOJA ÚLOHA
-Používateľ opísal situáciu, vybral si záťažovú kartu (čo prežíva) a akčnú kartu (ako sa chce cítiť). Napíš „premostenie“: jednu až dve vety, ktoré tieto dve emócie prepoja — čo mu akčná emócia v jeho situácii dovolí urobiť inak než to, čo s ním teraz robí záťažová. Opieraj sa o zmysel oboch kariet a o „čo potrebujem urobiť“ z akčnej karty. Názov akčnej karty píš s veľkým písmenom. Vzor tónu: ${VZOR_PREMOSTENIA} Max 40 slov.`;
+const ULOHA_PRIBEH = `TVOJA ÚLOHA
+Používateľ opísal situáciu, vybral si záťažovú kartu (čo prežíva) a akčnú kartu (ako sa chce cítiť). Napíš mu príbeh zmeny v dvoch úderoch, vyber z akčnej karty „cenu za zmenu“ a navrhni mikro-kroky:
+- „teraz“: 1–2 vety, čo s ním v JEHO situácii robí záťažová emócia — odkáž na konkrétnu vec z jeho textu, ale neopakuj ho doslova. Max 35 slov.
+- „most“: 1–2 vety, čo sa zmení, keď si vyberie akčnú emóciu — čo mu dovolí urobiť inak než to, čo s ním teraz robí záťažová. Názov akčnej karty píš ako bežné slovo s veľkým začiatočným písmenom (Ambícia, nie AMBÍCIA). Vzor tónu: ${VZOR_PREMOSTENIA} Max 35 slov.
+- „cena_index“: číslo (0, 1 alebo 2) toho bodu zo zoznamu „čo potrebujem urobiť“ na akčnej karte, ktorý najlepšie sedí na jeho situáciu. Body sú v zadaní očíslované.
+- „cena_v_situacii“: 1 veta, čo vybraný bod znamená v jeho situácii („V tvojom prípade to znamená…“). Je to TEN ISTÝ bod preložený do jeho situácie — nie nová rada, nie ďalší krok. Max 30 slov.
+- „mikrokroky“: 2 až 4 malé kroky na 5–15 minút, ktoré vie urobiť dnes alebo čo najskôr. Každý je konkrétny, začína slovesom a je odvodený z bodov na akčnej karte (najmä z vybraného) — nič, čo na karte nie je. Práve jeden označ „lahsi“: true — najmenší možný krok pre deň, keď nevládze. Max 20 slov na krok.
+Nesľubuj výsledok: nepíš, že sa situácia dobre skončí, že to dopadne alebo že sa mu uľaví. Pomenúvaš, čo emócia dovolí urobiť, nie čo sa stane.`;
 
 const SYSTEM_NAVRH_ZATAZOVE = [UVOD, ULOHA_NAVRH_ZATAZOVE, PRAVIDLA, BEZPECNOST, VSTUP_POUZIVATELA].join("\n\n");
 const SYSTEM_NAVRH_AKCNE = [UVOD, ULOHA_NAVRH_AKCNE, PRAVIDLA, BEZPECNOST, VSTUP_POUZIVATELA].join("\n\n");
 const SYSTEM_POROZUMENIE = [UVOD, ULOHA_POROZUMENIE, PRAVIDLA, VSTUP_POUZIVATELA].join("\n\n");
-const SYSTEM_PREMOSTENIE = [UVOD, ULOHA_PREMOSTENIE, PRAVIDLA, VSTUP_POUZIVATELA].join("\n\n");
+const SYSTEM_PRIBEH = [UVOD, ULOHA_PRIBEH, PRAVIDLA, VSTUP_POUZIVATELA].join("\n\n");
 
 // Fencing proti prompt-injection: náhodné UUID v značkách znamená, že text
 // od používateľa nevie „uhádnuť“ koniec bloku a vydávať sa za inštrukcie.
@@ -260,31 +266,31 @@ export function buildUserPorozumenie(situacia, zatazova, fence) {
   ].join("\n");
 }
 
-export function buildUserPremostenie(situacia, zatazova, akcna, fence) {
+// Body akčnej karty očíslované, aby „cena_index“ ukazoval na konkrétny bod.
+function akcnaKartaCislovane(c) {
+  const body = (c.potrebujem || []).map((t, i) => `  ${i}: ${t}`).join("\n");
+  return `- ${c.name}\n  čo potrebujem urobiť (očíslované pre „cena_index“):\n${body}\n  zmysel: ${c.zmysel}`;
+}
+
+export function buildUserPribeh(situacia, zatazova, akcna, fence) {
   return [
     "ZÁŤAŽOVÁ KARTA (čo prežíva):",
     kartaDoTextu(zatazova),
     "",
     "AKČNÁ KARTA (ako sa chce cítiť):",
-    kartaDoTextu(akcna),
+    akcnaKartaCislovane(akcna),
     "",
     blokSituacie(situacia, fence),
   ].join("\n");
 }
 
-export function buildSchema(cards, sPremostenim = false) {
+export function buildSchema(cards) {
   const properties = {
     // enum robí vymyslenú kartu štrukturálne nemožnou — silnejšie
     // ako inštrukcia v prompte, model ju nedokáže obísť.
     name: { type: "string", enum: cards.map((c) => c.name) },
     preco: { type: "string", description: "Jedna veta, max 25 slov." },
   };
-  if (sPremostenim) {
-    properties.premostenie = {
-      type: "string",
-      description: "Jedna až dve vety (max 40 slov): čo táto akčná emócia dovolí urobiť inak než záťažová.",
-    };
-  }
   return {
     name: "navrh_kariet",
     strict: true,
@@ -328,15 +334,32 @@ export const SCHEMA_POROZUMENIE = {
   },
 };
 
-export const SCHEMA_PREMOSTENIE = {
-  name: "premostenie",
+export const SCHEMA_PRIBEH = {
+  name: "pribeh_zmeny",
   strict: true,
   schema: {
     type: "object",
     properties: {
-      premostenie: { type: "string", description: "Jedna až dve vety, max 40 slov." },
+      teraz: { type: "string", description: "1–2 vety, max 35 slov: čo s používateľom v jeho situácii robí záťažová emócia." },
+      most: { type: "string", description: "1–2 vety, max 35 slov: čo mu akčná emócia dovolí urobiť inak." },
+      // enum: cena je VÝBER z bodov karty, nie vymyslený text
+      cena_index: { type: "integer", enum: [0, 1, 2], description: "Index bodu „čo potrebujem urobiť“ z akčnej karty, ktorý najlepšie sedí na situáciu." },
+      cena_v_situacii: { type: "string", description: "1 veta, max 30 slov: ten istý bod preložený do jeho situácie. Nie nová rada." },
+      mikrokroky: {
+        type: "array",
+        description: "2 až 4 kroky na 5–15 minút odvodené z bodov akčnej karty; práve jeden má lahsi=true.",
+        items: {
+          type: "object",
+          properties: {
+            text: { type: "string", description: "Konkrétny krok, začína slovesom, max 20 slov." },
+            lahsi: { type: "boolean", description: "true pre najmenší možný krok (práve jeden v zozname)." },
+          },
+          required: ["text", "lahsi"],
+          additionalProperties: false,
+        },
+      },
     },
-    required: ["premostenie"],
+    required: ["teraz", "most", "cena_index", "cena_v_situacii", "mikrokroky"],
     additionalProperties: false,
   },
 };
@@ -405,7 +428,7 @@ async function navrhniKarty(payload, apiKey) {
   const { parsed, usage } = await zavolajModel(apiKey, {
     system: akcne ? SYSTEM_NAVRH_AKCNE : SYSTEM_NAVRH_ZATAZOVE,
     user: buildUserContent(situacia, balicek, crypto.randomUUID(), zatazova),
-    schema: buildSchema(balicek.cards, akcne),
+    schema: buildSchema(balicek.cards),
   });
 
   // „Ver, ale over“: schéma síce mená garantuje, ale poradie, počet ani
@@ -416,9 +439,7 @@ async function navrhniKarty(payload, apiKey) {
     const card = balicek.cards.find((c) => c.name === item?.name);
     if (!card || videne.has(card.name)) continue;
     videne.add(card.name);
-    const navrh = { ...verejnaKarta(card), preco: text(item.preco) };
-    if (akcne) navrh.premostenie = text(item.premostenie);
-    karty.push(navrh);
+    karty.push({ ...verejnaKarta(card), preco: text(item.preco) });
     if (karty.length === POCET_NAVRHOV) break;
   }
 
@@ -457,30 +478,57 @@ async function porozumenie(payload, apiKey) {
   return json({ zmysel, otazka: text(parsed.otazka), zatazova: verejnaKarta(zatazova), usage });
 }
 
-// ---------- ÚLOHA: PREMOSTENIE (S5, karta mimo návrhu) ----------
-async function premostenie(payload, apiKey) {
+// ---------- ÚLOHA: PRÍBEH ZMENY (S5 + S6) ----------
+async function pribehZmeny(payload, apiKey) {
   const situacia = citajSituaciu(payload);
   const zatazova = citajKartu(payload, "zatazova", "zatazove");
   const akcna = citajKartu(payload, "akcna", "akcne");
 
   const { parsed, usage } = await zavolajModel(apiKey, {
-    system: SYSTEM_PREMOSTENIE,
-    user: buildUserPremostenie(situacia, zatazova, akcna, crypto.randomUUID()),
-    schema: SCHEMA_PREMOSTENIE,
-    maxTokens: 300,
+    system: SYSTEM_PRIBEH,
+    user: buildUserPribeh(situacia, zatazova, akcna, crypto.randomUUID()),
+    schema: SCHEMA_PRIBEH,
+    maxTokens: 700,
   });
 
-  const most = text(parsed.premostenie);
-  if (!most) {
-    console.error("Model nevrátil premostenie:", parsed);
-    throw new ApiChyba("Model nevrátil použiteľné premostenie.", 502);
+  const teraz = text(parsed.teraz);
+  const most = text(parsed.most);
+  if (!teraz || !most) {
+    console.error("Model nevrátil príbeh zmeny:", parsed);
+    throw new ApiChyba("Model nevrátil použiteľný príbeh zmeny.", 502);
   }
 
-  return json({ premostenie: most, zatazova: verejnaKarta(zatazova), akcna: verejnaKarta(akcna), usage });
+  // „Ver, ale over“: index musí ukazovať na skutočný bod karty, kroky musia mať
+  // text, byť bez duplicít, najviac 4 a s najviac jedným „ľahším“.
+  const body = akcna.potrebujem || [];
+  let index = parsed.cena_index;
+  if (!Number.isInteger(index) || index < 0 || index >= body.length) {
+    console.warn("cena_index mimo rozsahu, beriem 0:", parsed.cena_index);
+    index = 0;
+  }
+  const kroky = [];
+  const videne = new Set();
+  for (const k of Array.isArray(parsed.mikrokroky) ? parsed.mikrokroky : []) {
+    const t = text(k?.text);
+    if (!t || videne.has(t)) continue;
+    videne.add(t);
+    kroky.push({ text: t, lahsi: k?.lahsi === true && !kroky.some((x) => x.lahsi) });
+    if (kroky.length === 4) break;
+  }
+
+  return json({
+    teraz,
+    most,
+    cena: { index, text: body[index], v_situacii: text(parsed.cena_v_situacii) },
+    mikrokroky: kroky,
+    zatazova: verejnaKarta(zatazova),
+    akcna: verejnaKarta(akcna),
+    usage,
+  });
 }
 
 // ---------- /api/ai ----------
-const ULOHY = { "navrhni-karty": navrhniKarty, porozumenie, premostenie };
+const ULOHY = { "navrhni-karty": navrhniKarty, porozumenie, "pribeh-zmeny": pribehZmeny };
 
 async function handleAi(request, env) {
   if (request.method !== "POST") {
