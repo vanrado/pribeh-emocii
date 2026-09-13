@@ -13,8 +13,33 @@
     {
       "name": "pribeh-static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8123"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8123"
+      ],
       "port": 8123
+    },
+    {
+      "name": "pribeh-mock",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "tools/dev-server.py",
+        "--port",
+        "8124"
+      ],
+      "port": 8124
+    },
+    {
+      "name": "pribeh-proxy",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "tools/dev-server.py",
+        "--proxy",
+        "--port",
+        "8125"
+      ],
+      "port": 8125
     }
   ]
 }
