@@ -419,12 +419,48 @@ textarea{min-height:120px; line-height:1.5;}
 .recap-item .sub{ display:block; font-weight:400; font-size:12px; line-height:1.4; color:var(--ink-soft); margin-top:3px; }
 .done-state .btn-primary{ margin-bottom:10px; }
 
-/* Safety Flow — PLACEHOLDER. Nie je to hotová bezpečnostná obrazovka. */
-.safety-overlay{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(30,24,17,.55); padding:20px; }
-.safety-box{ background:var(--paper); border-radius:var(--radius-card); padding:22px 20px; max-width:420px; box-shadow:0 24px 60px -20px rgba(40,30,15,.6); }
-.safety-box h2{ font-family:'Fraunces',serif; font-weight:600; font-size:21px; margin-bottom:10px; }
-.safety-box p{ font-size:14px; line-height:1.6; margin-bottom:12px; }
-.safety-todo{ font-size:12.5px; line-height:1.5; border:1px dashed var(--orange-deep); border-radius:12px; padding:10px 12px; margin-bottom:14px; color:var(--orange-deep); }
+/* ---------- Safety: krízové kontakty ----------
+   Pokojný tón v jazyku appky — žiadna červená, žiadny alarm. Tri veľké ťukacie
+   čísla (tel:), chat ako odkaz, dve cesty von. Modal neblokuje. */
+.safety-overlay{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(30,24,17,.55); padding:16px; }
+.safety-overlay[hidden]{ display:none; }
+.safety-box{
+  background:var(--paper); border-radius:var(--radius-card); padding:22px 20px; width:100%; max-width:420px;
+  max-height:calc(100dvh - 32px); overflow-y:auto; box-shadow:0 24px 60px -20px rgba(40,30,15,.6);
+}
+.safety-box h2{ font-family:'Fraunces',serif; font-weight:600; font-size:22px; margin:0 0 10px; outline:none; }
+.safety-box p{ font-size:14px; line-height:1.6; margin:0 0 14px; color:var(--ink); }
+.help-lines{ list-style:none; padding:0; margin:0 0 18px; display:flex; flex-direction:column; gap:8px; }
+.help-line{
+  display:block; text-decoration:none; color:var(--ink);
+  background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px;
+  transition:transform .12s ease, border-color .15s ease;
+}
+.help-line:hover{ border-color:var(--ink-faint); }
+.help-line:active{ transform:scale(.99); }
+.help-line:focus-visible{ outline:2px solid var(--orange-deep); outline-offset:2px; }
+.help-num{ display:block; font-family:'Fraunces',serif; font-weight:600; font-size:24px; line-height:1.1; letter-spacing:.01em; }
+.help-desc{ display:block; font-size:12.5px; line-height:1.4; color:var(--ink-soft); margin-top:4px; }
+.help-chat{ display:block; font-size:12.5px; line-height:1.4; margin:6px 4px 0; color:var(--green-deep); text-decoration:underline; text-underline-offset:3px; }
+.help-chat:focus-visible{ outline:2px solid var(--orange-deep); outline-offset:2px; border-radius:4px; }
+.safety-actions{ display:flex; flex-direction:column; gap:8px; }
+.safety-actions .btn-outline{ width:100%; }
+#helpBtn{ color:var(--orange-deep); }
+#helpBtn[hidden]{ display:none; }
+/* nízke displeje (320×568): nech sú obe tlačidlá viditeľné bez scrollovania v modale */
+@media (max-height:640px){
+  .safety-overlay{ padding:10px; }
+  .safety-box{ padding:16px 16px; max-height:calc(100dvh - 20px); }
+  .safety-box h2{ font-size:20px; margin-bottom:6px; }
+  .safety-box p{ font-size:13.5px; line-height:1.5; margin-bottom:8px; }
+  .help-lines{ gap:6px; margin-bottom:10px; }
+  .help-line{ padding:8px 12px; }
+  .help-num{ font-size:22px; }
+  .help-desc{ font-size:12px; margin-top:2px; }
+  .help-chat{ margin-top:4px; }
+  .safety-actions{ gap:6px; }
+  .safety-actions .btn{ padding:12px 16px; }
+}
 </style>
 </head>
 <body>
@@ -438,6 +474,9 @@ textarea{min-height:120px; line-height:1.5;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </div>
     <div class="progress" id="progress"></div>
+    <button class="icon-btn" id="helpBtn" type="button" aria-label="Kontakty pomoci" title="Kontakty pomoci" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10A4 4 0 0 1 12 8.2a4 4 0 0 1 7.5 2.3c0 5.4-7.5 10-7.5 10z"/></svg>
+    </button>
     <div class="icon-btn" id="resetBtn" aria-label="Spustiť znova">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
     </div>
@@ -648,6 +687,42 @@ textarea{min-height:120px; line-height:1.5;}
   </div>
 </div>
 
+<!-- Krízové kontakty. Zobrazí sa, keď model vráti kriza:true (raz pre daný text
+     situácie), a kedykoľvek cez tlačidlo so srdcom v hornej lište. Neblokuje.
+     Čísla: verejné národné linky, overené 13. 9. 2026 (minedu.sk, ipcko.sk,
+     linkanezabudka.sk) — pred ostrým spustením potvrdiť s Janette. -->
+<div class="safety-overlay" id="safetyOverlay" hidden>
+  <div class="safety-box" role="dialog" aria-modal="true" aria-labelledby="safetyTitle" aria-describedby="safetyText">
+    <h2 id="safetyTitle" tabindex="-1">Zastavme sa na chvíľu</h2>
+    <p id="safetyText">V tom, čo si napísal/a, zaznieva niečo ťažké. Táto appka je nástroj na sebapoznávanie, nie na krízovú pomoc. Ozvi sa prosím niekomu, kto ti vie pomôcť hneď.</p>
+    <ul class="help-lines">
+      <li>
+        <a class="help-line" href="tel:112">
+          <span class="help-num">112</span>
+          <span class="help-desc">Tiesňová linka — ak hrozí bezprostredné nebezpečenstvo</span>
+        </a>
+      </li>
+      <li>
+        <a class="help-line" href="tel:0800500333">
+          <span class="help-num">0800 500 333</span>
+          <span class="help-desc">Krízová linka pomoci IPčko — nonstop, bezplatne, anonymne</span>
+        </a>
+        <a class="help-chat" href="https://krizovalinkapomoci.sk" target="_blank" rel="noopener">Chat: krizovalinkapomoci.sk</a>
+      </li>
+      <li>
+        <a class="help-line" href="tel:0800800566">
+          <span class="help-num">0800 800 566</span>
+          <span class="help-desc">Linka dôvery Nezábudka — nonstop, bezplatne, anonymne</span>
+        </a>
+      </li>
+    </ul>
+    <div class="safety-actions">
+      <button class="btn btn-primary" id="safetyContinue" type="button">Rozumiem, pokračovať</button>
+      <button class="btn btn-outline" id="safetyEnd" type="button">Ukončiť sedenie</button>
+    </div>
+  </div>
+</div>
+
 <svg width="0" height="0" style="position:absolute">
   <defs>
     <symbol id="fig-contract" viewBox="0 0 100 120">
@@ -712,7 +787,7 @@ textarea{min-height:120px; line-height:1.5;}
     situation:'', orange:null, orangeConfirmed:false,
     interp:null, green:null, greenConfirmed:false,
     reflectChecked:false, step:null, customStep:false, customStepText:'',
-    mantraIdx:0, mantraText:null, history:[1]
+    mantraIdx:0, mantraText:null, krizaFor:null, history:[1]
   };
 
   // ---------- HELPERS ----------
@@ -821,7 +896,7 @@ textarea{min-height:120px; line-height:1.5;}
 
     requestKarty(jeOrange ? 'zatazove' : 'akcne').then(function(body){
       if(seq !== ai[ktory+'Seq']) return;                 // medzitým sa zmenil vstup
-      if(body.kriza) zobrazSafety();
+      if(body.kriza) safetyPriDetekcii();
       var karty = spojSKartami(deck, body.karty);
       if(!karty.length) throw new Error('odpoveď neobsahovala použiteľnú kartu');
       if(jeOrange) orangeCandidates = karty; else { greenCandidates = karty; zosuladGreenVyber(karty); }
@@ -952,26 +1027,46 @@ textarea{min-height:120px; line-height:1.5;}
     });
   }
 
-  // POZOR: toto NIE JE Safety Flow zo špecifikácie. Je to dočasná zástava,
-  // aby signál krízy zo servera nezapadol. Skutočná vetva (tvrdé prerušenie
-  // toku + overené krízové kontakty) je stále neimplementovaná.
+  // ---------- SAFETY: krízové kontakty ----------
+  // Spúšťa sa, keď model vráti kriza:true — raz pre daný text situácie (S2 aj S4
+  // posielajú ten istý text, druhá zástava by bola len otravná). Neblokuje:
+  // človek môže pokračovať alebo sedenie ukončiť. Kto modal zavrel reflexívne,
+  // sa ku kontaktom vráti tlačidlom so srdcom v hornej lište.
+  // Text situácie sa pri tom nikam neloguje.
+  var safetyReturnFocus = null;
   function zobrazSafety(){
-    if(document.getElementById('safetyOverlay')) return;
-    var el = document.createElement('div');
-    el.className = 'safety-overlay';
-    el.id = 'safetyOverlay';
-    el.innerHTML =
-      '<div class="safety-box" role="alertdialog" aria-labelledby="safetyTitle">'
-      +   '<h2 id="safetyTitle">Zastavme sa na chvíľu</h2>'
-      +   '<p>V tom, čo si napísal(a), zaznieva niečo ťažké. Táto appka je nástroj '
-      +   'na sebapoznávanie, nie na krízovú pomoc. Ozvi sa prosím niekomu, kto ti vie pomôcť hneď.</p>'
-      +   '<div class="safety-todo"><strong>NEDOKONČENÉ:</strong> sem patria krízové kontakty '
-      +   '(linka dôvery, tiesňová linka). Čísla musí dodať klient — prototyp si ich nevymýšľa.</div>'
-      +   '<button class="btn btn-outline" id="safetyClose" style="width:100%;">Rozumiem</button>'
-      + '</div>';
-    document.body.appendChild(el);
-    document.getElementById('safetyClose').addEventListener('click', function(){ el.remove(); });
+    var ov = $('safetyOverlay');
+    if(!ov.hidden) return;
+    safetyReturnFocus = document.activeElement;
+    ov.hidden = false;
+    $('helpBtn').hidden = false;
+    $('safetyTitle').focus();
+    console.info('[Safety] zobrazené krízové kontakty');
   }
+  function skrySafety(){
+    $('safetyOverlay').hidden = true;
+    if(safetyReturnFocus && typeof safetyReturnFocus.focus === 'function') safetyReturnFocus.focus();
+  }
+  function safetyPriDetekcii(){
+    if(state.krizaFor === state.situation) return;        // pre tento text už bola
+    state.krizaFor = state.situation;
+    zobrazSafety();
+  }
+  $('safetyContinue').addEventListener('click', skrySafety);
+  $('safetyEnd').addEventListener('click', function(){ skrySafety(); resetAll(); });
+  $('helpBtn').addEventListener('click', zobrazSafety);
+  $('safetyOverlay').addEventListener('click', function(e){ if(e.target === this) skrySafety(); });
+  document.addEventListener('keydown', function(e){
+    var ov = $('safetyOverlay');
+    if(ov.hidden) return;
+    if(e.key === 'Escape'){ e.preventDefault(); skrySafety(); return; }
+    if(e.key !== 'Tab') return;
+    var f = ov.querySelectorAll('a[href], button:not([disabled])');   // fokus ostáva v dialógu
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || document.activeElement === $('safetyTitle'))){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
 
   // ---------- PROGRESS / NAV ----------
   var progressEl = $('progress');
@@ -1536,7 +1631,7 @@ textarea{min-height:120px; line-height:1.5;}
     state = { situation:'', orange:null, orangeConfirmed:false,
       interp:null, green:null, greenConfirmed:false,
       reflectChecked:false, step:null, customStep:false, customStepText:'',
-      mantraIdx:0, mantraText:null, history:[1] };
+      mantraIdx:0, mantraText:null, krizaFor:null, history:[1] };
     $('s1cta').disabled = true;
     $('s2cta').disabled = true;
     ai = novyAiStav();
@@ -1544,7 +1639,8 @@ textarea{min-height:120px; line-height:1.5;}
     greenCandidates  = FALLBACK_GREEN.slice();
     $('orangeAiNote').hidden = true;
     $('greenAiNote').hidden = true;
-    var sf = document.getElementById('safetyOverlay'); if(sf) sf.remove();
+    $('safetyOverlay').hidden = true;
+    $('helpBtn').hidden = true;
     $('s4cta').disabled = true;
     $('orangeAllPanel').hidden = true;
     $('orangeSearch').value = '';

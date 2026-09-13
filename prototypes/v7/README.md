@@ -66,6 +66,34 @@ neukladá, účty a história sú mimo rozsahu). CTA je teraz „Hotovo“ a v h
 stave **„Skopírovať môj plán“** — príbeh, mantra, cieľ s cenou a krok do
 schránky, nech si to človek vloží do poznámok.
 
+### Krízové kontakty (zástava pri `kriza: true`)
+
+Model v `navrhni-karty` vráti `kriza: true` len pri reči o smrti, ublížení si
+alebo ohrození inou osobou (nie pri smútku, beznádeji, vyhorení). Klient vtedy
+zobrazí modal „Zastavme sa na chvíľu“:
+
+- **Tri kontakty, nič viac** — človek v kríze nebude porovnávať možnosti:
+  **112** (bezprostredné nebezpečenstvo), **0800 500 333** Krízová linka pomoci
+  IPčko (nonstop, bezplatne, anonymne; aj chat na krizovalinkapomoci.sk — veľká
+  časť ľudí v kríze nezdvihne telefón, ale napíše), **0800 800 566** Linka
+  dôvery Nezábudka (nonstop, bezplatne, anonymne). Čísla sú `tel:` odkazy, chat
+  `https://` — na mobile jeden ťuk.
+- **Neblokuje.** „Rozumiem, pokračovať“ zavrie modal (aj Esc, aj ťuk mimo);
+  „Ukončiť sedenie“ vráti na začiatok. Keby zástava blokovala, ľudia by písali
+  vyhýbavo a stratili by sme signál aj nástroj.
+- **Raz pre daný text.** S2 aj S4 vyhodnocujú tú istú situáciu; zástava sa
+  drží kľúča `krizaFor`, nový text na S1 = nové vyhodnotenie.
+- **Kontakty ostávajú na dosah** — po detekcii sa v hornej lište objaví
+  tlačidlo so srdcom, ktoré modal otvorí kedykoľvek.
+- Prístupnosť: `role="dialog"`, `aria-modal`, fokus do dialógu a späť, Tab
+  ostáva vnútri. Tón pokojný, v jazyku appky — žiadna červená.
+- Text situácie sa pri tom neloguje; do konzoly ide len `[Safety] zobrazené`.
+
+Čísla sú verejné národné linky, overené 13. 9. 2026 (minedu.sk — krízové linky
+psychologickej podpory, ipcko.sk, linkanezabudka.sk). **Pred ostrým spustením
+ich má potvrdiť Janette — je to jej produkt a jej zodpovednosť, čo tam stojí.**
+Ak appku môžu používať maloletí, pribudne Linka detskej istoty 116 111.
+
 ### Krok 6 je experiment — čo povedať Janette
 
 Wireframe 0.3 má na S6 len tri body zo zadnej strany akčnej karty. AI spec
@@ -149,8 +177,11 @@ Mock mení zelený návrh podľa `zatazova` a pozná markery v texte situácie:
 
 ## Čo NIE je hotové
 
-- **Safety Flow** — stále len dočasná zástava, nie bezpečnostná obrazovka zo
-  špecifikácie (viď v6).
+- **Safety Flow — čiastočne.** Pri `kriza: true` sa zobrazí modal s reálnymi
+  krízovými kontaktmi (viď nižšie). Čo chýba: potvrdenie čísel Janette pred
+  ostrým spustením a rozhodnutie, či sa má tok po detekcii **tvrdo zastaviť**
+  (špecifikácia to žiada; prototyp zámerne neblokuje) — a robustnejšia
+  detekcia než jeden boolean od modelu.
 - **S1** zhrnutie situácie (fáza 1 zo špecu) — stále nie je nikde.
 - **S6 je experiment** (viď vyššie) — rozhodnutie, či AI kroky ostanú, je na
   Janette; body z karty ostávajú v každom prípade.
