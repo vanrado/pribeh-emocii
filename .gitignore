@@ -1,1 +1,6 @@
 docs/source/prirucka-emocie.pdf
+
+node_modules/
+.wrangler/
+.dev.vars
+.DS_Store

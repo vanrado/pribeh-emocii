@@ -1,0 +1,9 @@
+# Skopíruj na .dev.vars (je v .gitignore) pre lokálne `npm run dev`.
+# V produkcii sa tieto hodnoty nastavujú cez `wrangler secret put` alebo
+# Secrets Store — nikdy nie v tomto súbore. Pozri DEPLOY.md.
+
+BASIC_AUTH_USER=janette
+BASIC_AUTH_PASS=zmen-ma
+
+# Nepovinné. Bez neho /api/ai vracia 503, zvyšok appky funguje normálne.
+OPENAI_API_KEY=

@@ -2,6 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "pribeh-worker",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "source \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1 && nvm use >/dev/null 2>&1; exec npx wrangler dev --port 8788"
+      ],
+      "port": 8788
+    },
+    {
       "name": "pribeh-static",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8123"],
