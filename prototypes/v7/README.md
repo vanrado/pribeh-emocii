@@ -1,7 +1,8 @@
-# Prototyp v7 — AI v porozumení (S3), vo výbere smeru (S4) a v premostení (S5)
+# Prototyp v7 — AI v porozumení (S3), výbere smeru (S4), príbehu zmeny (S5) a mini-krokoch (S6)
 
-Odvodené z `v6`. Dopĺňa fázy 3 a 4 z `docs/source/integracia-ai-do-mvp-koucingoveho-toku.md`.
-UI ani obsah kariet sa nemení; mení sa, odkiaľ pochádzajú tri texty.
+Odvodené z `v6`. Dopĺňa fázy 3, 4 a 5 z `docs/source/integracia-ai-do-mvp-koucingoveho-toku.md`.
+Obsah kariet sa nemení a Janettine texty ostávajú všade viditeľné; mení sa,
+čo k nim appka pridá na mieru situácii.
 
 ## Čo je nové
 
@@ -12,12 +13,55 @@ emócia *odpovedala na jej zmysel*, nie aby bola náhodne „pozitívna“. Vo v
 sa posielal len text situácie, takže Úzkosť aj Hnev dostávali rovnaké
 zelené karty — navonok to vyzeralo, že krok 4 AI nepoužíva.
 
-**S5 — premostenie generuje model.** Každá z troch navrhnutých akčných kariet
-príde z S4 aj s poľom `premostenie` („Namiesto úteku pred neistotou ti Odvaha
-dovolí…“), takže S5 sa zobrazí okamžite, bez ďalšieho volania. Keď si
-používateľ vyberie kartu **mimo návrhu** (zo zoznamu 30), S5 si most vyžiada
-samostatnou úlohou `premostenie` a dovtedy ukáže textový skeleton. Ručná
-tabuľka `bridgeOverrides` z v4 ostáva len ako záloha pri zlyhaní.
+**S5 + S6 — príbeh zmeny z jedného volania.** Úloha `pribeh-zmeny` dostane
+situáciu a obe zvolené karty a vráti:
+
+- `teraz` + `most` — príbeh v dvoch úderoch („Príbeh 2 kariet“ z wireframu):
+  čo s používateľom v *tejto* situácii robí záťažová emócia a čo mu akčná
+  dovolí urobiť inak. Na S5 ako jeden odsek „Ako ti to pomôže?“.
+- `cena` — model **vyberá** (`cena_index`, enum 0–2), ktorý z troch bodov „čo
+  potrebujem urobiť“ na akčnej karte sedí na situáciu; vo v6 sa vždy bral
+  prvý. Text bodu ostáva Janettin (tučne, „z karty“), pod ním jedna veta
+  „v tvojej situácii“ — ten istý bod preložený do situácie, nie nová rada.
+- `mikrokroky` — 2–4 kroky na 5–15 min odvodené z bodov karty, jeden
+  označený „najmenší krok“. Na S6 tvoria sekciu „Na mieru pre tvoju
+  situáciu“ **nad** sekciou „Z karty …“ s pôvodnými tromi bodmi (bod vybraný
+  na S5 má štítok „cena za zmenu“). Je to jedna radio skupina: používateľ si
+  vyberá z oboch, Janette vidí oboje vedľa seba.
+
+Volanie sa spúšťa **už pri ťuknutí na kartu na S4** (prefetch, tlmené
+350 ms): kým používateľ číta zadnú stranu, odpoveď dobehne a S5 je okamžitá.
+Kto je rýchlejší ako model, uvidí skeleton. S6 sa po dobehnutí odpovede
+prekreslí len dovtedy, kým si používateľ nič nevybral. Záloha na S5 = ručná
+tabuľka `bridgeOverrides` z v4 a šablóna, na S6 = body z karty — presne v6.
+
+Prompt výslovne zakazuje sľubovať výsledok („dopadne to dobre“) — pri karte
+Nádej je to najľahšie pokušenie a zároveň Lumosity-pravidlo z júlového
+stretnutia.
+
+### Krok 6 je experiment — čo povedať Janette
+
+Wireframe 0.3 má na S6 len tri body zo zadnej strany akčnej karty. AI spec
+(fáza 5) hovorí, že AI navrhne 2–4 mikro-kroky „podložené odporúčaniami
+z kariet“. v7 skúša obe veci naraz, aby sa dali porovnať:
+
+- **Nič z jej textu sa nestratilo.** Tri body z karty sú na S6 vždy, v jej
+  znení, ako sekcia „Z karty …“. Bod, ktorý model na S5 označil ako cenu za
+  zmenu, má štítok *cena za zmenu*.
+- **Nad nimi je sekcia „Na mieru pre tvoju situáciu“** — 2–4 kroky, ktoré
+  model odvodil z týchto bodov pre konkrétnu situáciu (5–15 minút, začínajú
+  slovesom, jeden je označený *najmenší krok* pre deň, keď človek nevládze).
+  Model má zakázané navrhnúť čokoľvek, čo na karte nie je.
+- **Používateľ vyberá z oboch** — je to jedna skupina.
+
+Na čo sa jej pýtame: Sú kroky „na mieru“ naozaj v duchu karty, alebo z nej
+vybočujú? Je pre klienta lepšie mať k dispozícii obidve úrovne (abstraktný
+bod z karty + konkrétny krok), alebo to rozptyľuje? Má „najmenší krok“ pre
+jej klientov zmysel? Podľa odpovede sa S6 buď vráti k wireframu, alebo sa
+AI kroky stanú súčasťou produktu.
+
+Čo sa dá zmerať už v prototype (konzola loguje všetky kroky): ako často
+ľudia vyberú AI krok vs. bod z karty vs. vlastný, a ako často „najmenší“.
 
 **S3 — zmysel emócie v kontexte situácie + otázka.** Nová úloha `porozumenie`
 vráti 2–3 vety o tom, čo zvolená emócia signalizuje *v tejto* situácii, a jednu
@@ -42,15 +86,15 @@ Každá úloha má kľúč vstupov, pre ktoré výsledok platí:
 | `orange` | situácia | trojica z v5 + veta pod karuselom |
 | `green` | situácia + oranžová karta | trojica z v5 + veta pod karuselom |
 | `porozumenie` | situácia + oranžová karta | „Zmysel emócie“ z karty (ako v6) |
-| `most` | situácia + oranžová + zelená | `bridgeOverrides`, potom šablóna (ako v6) |
+| `pribeh` | situácia + oranžová + zelená | S5: `bridgeOverrides`, potom šablóna; S6: body z karty (ako v6) |
 
 Keď sa používateľ vráti a niečo zmení, kľúč nesedí a volá sa znova; odpovede,
-ktoré dobehnú po zmene vstupu, sa zahodia (`*Seq`). Pri výmene zelených
-návrhov sa zo zvolenej karty zmaže most, ktorý patril inej oranžovej —
-S5 si potom vyžiada správny.
+ktoré dobehnú po zmene vstupu, sa zahodia (`*Seq`). Zmena zelenej karty
+zároveň zruší už vybraný mini-krok — krok z inej karty nesmie prežiť jej
+zmenu (latentná chyba z v5).
 
 Všetky AI texty sa logujú do konzoly (`[AI] porozumenie …`, `[AI] green …`,
-`[AI] most …`) aj s počtom tokenov — to je surovina na vyhodnotenie
+`[AI] pribeh …`) aj s počtom tokenov — to je surovina na vyhodnotenie
 experimentu (latencia, kvalita slovenčiny, ako často používateľ návrh odmietne).
 
 ## Ako to spustiť
@@ -79,8 +123,9 @@ Mock mení zelený návrh podľa `zatazova` a pozná markery v texte situácie:
 
 - **Safety Flow** — stále len dočasná zástava, nie bezpečnostná obrazovka zo
   špecifikácie (viď v6).
-- **S1** zhrnutie situácie, **S6** mini-kroky od AI, **S7** sumár + mantra —
-  stále šablóny.
+- **S1** zhrnutie situácie a **S7** sumár + mantra — stále šablóny.
+- **S6 je experiment** (viď vyššie) — rozhodnutie, či AI kroky ostanú, je na
+  Janette; body z karty ostávajú v každom prípade.
 - **Rate limit / strop nákladov** na `/api/ai` — plán ho vyžaduje, Worker ho nemá.
 - `prototypes/v7/cards.js` je kópia v6; `tools/csv-to-cards.py` generuje len
   `v5/cards.js` a `worker/cards.js`.

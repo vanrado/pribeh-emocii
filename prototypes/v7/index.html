@@ -377,9 +377,20 @@ textarea{min-height:120px; line-height:1.5;}
   background-size:220% 100%; animation:skelShimmer 1.3s linear infinite;
 }
 @media (prefers-reduced-motion:reduce){ .skel-line{ animation:none; } }
-.ai-block h3 .h3-tag{
+.ai-block .h3-tag{
   font-family:'Work Sans',sans-serif; font-weight:500; font-size:10.5px; letter-spacing:.06em;
   text-transform:uppercase; color:var(--ink-faint); margin-left:6px; vertical-align:middle;
+}
+.ai-block p .h3-tag{ display:block; margin:0 0 4px; }
+.skel-inline{ display:inline-block; vertical-align:middle; margin:0; }
+.ai-block .cena-kontext{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+/* S6: kroky na mieru (AI) a body z karty (Janette) v jednej radio skupine */
+.steps-kicker{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin:16px 2px 8px; }
+.steps-kicker:first-child{ margin-top:0; }
+.step-tag{
+  display:inline-block; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--green-deep); background:var(--green-soft2); border:1px solid var(--green-soft);
+  border-radius:999px; padding:2px 7px; margin-left:6px; vertical-align:middle;
 }
 .reflex{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }
 .reflex-cap{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin-bottom:3px; }
@@ -537,13 +548,14 @@ textarea{min-height:120px; line-height:1.5;}
       </div>
 
       <div class="ai-block" id="bridgeBlock">
-        <h3>Ako ti to pomôže?</h3>
+        <h3>Ako ti to pomôže? <span class="h3-tag" id="bridgeTag" hidden>v tvojej situácii</span></h3>
         <p id="bridgeExplain">—</p>
       </div>
 
-      <div class="ai-block">
-        <h3>Cena za zmenu</h3>
-        <p>Aby si mohol/a cítiť <strong id="goalNameInline">—</strong>, karta hovorí, že potrebuješ: <span id="priceText">—</span></p>
+      <div class="ai-block" id="priceBlock">
+        <h3>Cena za zmenu <span class="h3-tag">z karty</span></h3>
+        <p>Aby si mohol/a cítiť <strong id="goalNameInline">—</strong>, karta hovorí, že potrebuješ: <strong id="priceText">—</strong></p>
+        <p class="cena-kontext" id="priceContext" hidden><span class="h3-tag">v tvojej situácii</span><span id="priceContextText"></span></p>
       </div>
 
       <div class="check-row" id="reflectCheck">
@@ -658,7 +670,7 @@ textarea{min-height:120px; line-height:1.5;}
       orange:'idle', orangeFor:null, orangeSeq:0,
       green:'idle',  greenFor:null,  greenSeq:0,
       porozumenie:'idle', porozumenieFor:null, porozumenieSeq:0, porozumenieData:null,
-      most:'idle', mostFor:null, mostSeq:0, mostText:null
+      pribeh:'idle', pribehFor:null, pribehSeq:0, pribehData:null
     };
   }
   var ai = novyAiStav();
@@ -731,7 +743,6 @@ textarea{min-height:120px; line-height:1.5;}
       var copy = {};
       for(var key in card){ if(Object.prototype.hasOwnProperty.call(card, key)) copy[key] = card[key]; }
       copy.preco = (k.preco || '');
-      copy.premostenie = (k.premostenie || '');   // len akčné karty; most pre S5
       return copy;
     }).filter(Boolean);
   }
@@ -746,23 +757,19 @@ textarea{min-height:120px; line-height:1.5;}
     return out;
   }
 
+  function skelInlineHTML(){ return '<span class="skel-line skel-inline" style="width:60%" aria-hidden="true"></span>'; }
   function skelTextHTML(n){
     var w = [100, 92, 64], out = '';
     for(var i=0;i<n;i++) out += '<span class="skel-line" style="width:'+w[i%3]+'%"></span>';
     return '<span class="skel-text" aria-hidden="true">'+out+'</span>';
   }
 
-  // Po výmene zelených návrhov nesmie na state.green ostať most z inej
-  // oranžovej karty: ak je zvolená karta v novom návrhu, vezmeme nový objekt,
-  // inak jej most zmažeme a S5 si ho vyžiada samostatne.
+  // Po výmene zelených návrhov nech state.green ukazuje na nový objekt (má
+  // čerstvé „preco“); ak zvolená karta v novom návrhu nie je, ostáva ako je.
   function zosuladGreenVyber(karty){
     if(!state.green) return;
     var nova = karty.filter(function(c){ return c.name === state.green.name; })[0];
-    if(nova){ state.green = nova; return; }
-    if(state.green.premostenie){
-      var copy = {}; for(var k in state.green){ if(Object.prototype.hasOwnProperty.call(state.green,k)) copy[k]=state.green[k]; }
-      copy.premostenie = ''; state.green = copy;
-    }
+    if(nova) state.green = nova;
   }
 
   function nacitajNavrh(ktory){
@@ -788,7 +795,7 @@ textarea{min-height:120px; line-height:1.5;}
       if(jeOrange) orangeCandidates = karty; else { greenCandidates = karty; zosuladGreenVyber(karty); }
       ai[ktory] = 'ok';
       console.info('[AI] ' + ktory + (jeOrange ? '' : ' (pre ' + state.orange.name + ')') + ' → '
-        + karty.map(function(c){ return c.name + (c.premostenie ? ' — ' + c.premostenie : ''); }).join(' | ') + tokeny(body));
+        + karty.map(function(c){ return c.name; }).join(', ') + tokeny(body));
       render();
     }).catch(function(err){
       if(seq !== ai[ktory+'Seq']) return;
@@ -827,32 +834,49 @@ textarea{min-height:120px; line-height:1.5;}
     });
   }
 
-  // S5: most záťažová → akčná. Karty z návrhu ho majú už z kroku 4 (bez
-  // ďalšieho volania); karta vybraná z celého zoznamu si ho vyžiada tu.
-  // Záloha = ručné mosty z v4 a potom šablóna, presne ako vo v6.
-  function nacitajMost(){
+  // S5 + S6: príbeh zmeny pre zvolenú dvojicu kariet („teraz“ + „most“, výber
+  // ceny za zmenu z bodov karty + jej preklad do situácie, mikro-kroky).
+  // Spúšťa sa už pri ťuknutí na kartu na S4 (prefetch): kým používateľ číta
+  // zadnú stranu, odpoveď dobehne a S5 je okamžitá. Rýchle preklikávanie
+  // tlmí krátky timer, zmena výberu zahodí starú odpoveď (*Seq).
+  // Záloha na S5 = ručné mosty z v4 a šablóna, na S6 = body z karty (ako v6).
+  var pribehTimer = null;
+  function naplanujPribeh(){ clearTimeout(pribehTimer); pribehTimer = setTimeout(nacitajPribeh, 350); }
+  function pribehKluc(){ return kluc(state.situation, state.orange.name, state.green.name); }
+  function pribehPlatny(){ return !!(state.orange && state.green) && ai.pribehFor === pribehKluc(); }
+
+  function nacitajPribeh(){
     if(!state.orange || !state.green) return;
-    var k = kluc(state.situation, state.orange.name, state.green.name);
-    if(ai.mostFor === k && (ai.most === 'loading' || ai.most === 'ok')) return;
-    if(state.green.premostenie){
-      ai.most = 'ok'; ai.mostFor = k; ai.mostText = state.green.premostenie;
-      return;
-    }
-    var seq = ++ai.mostSeq;
-    ai.most = 'loading'; ai.mostFor = k; ai.mostText = null;
+    var k = pribehKluc();
+    if(ai.pribehFor === k && (ai.pribeh === 'loading' || ai.pribeh === 'ok')) return;
+    var seq = ++ai.pribehSeq;
+    ai.pribeh = 'loading'; ai.pribehFor = k; ai.pribehData = null;
     if(aktualnaObrazovka() === 5) renderS5();
 
-    postAi({ task:'premostenie', situacia: state.situation, zatazova: state.orange.name, akcna: state.green.name }).then(function(body){
-      if(seq !== ai.mostSeq) return;
-      if(!body.premostenie) throw new Error('odpoveď neobsahovala premostenie');
-      ai.mostText = body.premostenie; ai.most = 'ok';
-      console.info('[AI] most (' + state.orange.name + ' → ' + state.green.name + ') → ' + body.premostenie + tokeny(body));
-      if(aktualnaObrazovka() === 5) renderS5();
+    postAi({ task:'pribeh-zmeny', situacia: state.situation, zatazova: state.orange.name, akcna: state.green.name }).then(function(body){
+      if(seq !== ai.pribehSeq) return;
+      if(!body.teraz || !body.most) throw new Error('odpoveď neobsahovala príbeh zmeny');
+      ai.pribehData = {
+        teraz: body.teraz, most: body.most,
+        cena: body.cena || null,
+        mikrokroky: (body.mikrokroky || []).filter(function(m){ return m && m.text; })
+      };
+      ai.pribeh = 'ok';
+      console.info('[AI] pribeh (' + state.orange.name + ' → ' + state.green.name + ') → ' + body.teraz + ' ' + body.most
+        + (body.cena ? '  | cena[' + body.cena.index + ']: ' + body.cena.v_situacii : '')
+        + '  | kroky: ' + ai.pribehData.mikrokroky.map(function(m){ return (m.lahsi ? '(najmenší) ' : '') + m.text; }).join(' / ')
+        + tokeny(body));
+      var s = aktualnaObrazovka();
+      if(s === 5) renderS5();
+      // S6 prekresli, len kým si používateľ nič nevybral — inak by mu zoznam ušiel spod prsta
+      if(s === 6 && !state.step && !state.customStep) renderS6();
     }).catch(function(err){
-      if(seq !== ai.mostSeq) return;
-      console.error('[AI] most — zlyhal, beriem šablónu:', err);
-      ai.most = 'fallback';
-      if(aktualnaObrazovka() === 5) renderS5();
+      if(seq !== ai.pribehSeq) return;
+      console.error('[AI] pribeh — zlyhal, beriem šablónu a body z karty:', err);
+      ai.pribeh = 'fallback';
+      var s = aktualnaObrazovka();
+      if(s === 5) renderS5();
+      if(s === 6 && !state.step && !state.customStep) renderS6();
     });
   }
 
@@ -1087,9 +1111,14 @@ textarea{min-height:120px; line-height:1.5;}
   function isGreenSelected(card){ return state.green && card && state.green.name===card.name; }
 
   function selectGreen(card){
-    // Karta z celého zoznamu nemá most; ak je zhodou okolností medzi návrhmi, vezmi ten objekt.
-    state.green = greenCandidates.filter(function(c){ return c.name === card.name; })[0] || card;
+    // Ak je karta medzi návrhmi, vezmi ten objekt (má „preco“ na zadnú stranu).
+    var nova = greenCandidates.filter(function(c){ return c.name === card.name; })[0] || card;
+    if(state.green && state.green.name !== nova.name){
+      state.step = null; state.customStep = false;   // krok z inej karty nesmie prežiť jej zmenu
+    }
+    state.green = nova;
     state.greenConfirmed = false;
+    naplanujPribeh();
     $('s4cta').disabled = false;
     renderGreenReco();
     if(!$('greenAllPanel').hidden) renderGreenAll($('greenSearch').value);
@@ -1161,7 +1190,7 @@ textarea{min-height:120px; line-height:1.5;}
     if(!panel.hidden){ renderGreenAll($('greenSearch').value); $('greenSearch').focus(); }
   });
   $('greenSearch').addEventListener('input', function(){ renderGreenAll(this.value); });
-  $('s4cta').addEventListener('click', function(){ state.greenConfirmed=true; nacitajMost(); goTo(5); });
+  $('s4cta').addEventListener('click', function(){ state.greenConfirmed=true; nacitajPribeh(); goTo(5); });
 
   // ---------- SCREEN 5 ----------
   var bridgeOverrides = {
@@ -1175,17 +1204,33 @@ textarea{min-height:120px; line-height:1.5;}
     $('bridgeFrom').textContent = state.orange.name;
     $('bridgeTo').textContent = state.green.name;
     $('goalNameInline').textContent = akuzativ(state.green.name);
-    var mostPlatny = ai.mostFor === kluc(state.situation, state.orange.name, state.green.name);
-    $('bridgeBlock').setAttribute('aria-busy', mostPlatny && ai.most === 'loading' ? 'true' : 'false');
-    if(mostPlatny && ai.most === 'loading'){
-      $('bridgeExplain').innerHTML = skelTextHTML(2);
-    } else if(mostPlatny && ai.most === 'ok' && ai.mostText){
-      $('bridgeExplain').textContent = ai.mostText;
+    var pd = ai.pribehData;
+    var loading = pribehPlatny() && ai.pribeh === 'loading';
+    var ok = pribehPlatny() && ai.pribeh === 'ok' && !!pd;
+    $('bridgeBlock').setAttribute('aria-busy', loading ? 'true' : 'false');
+    $('bridgeTag').hidden = !ok;
+    if(loading){
+      $('bridgeExplain').innerHTML = skelTextHTML(3);
+    } else if(ok){
+      $('bridgeExplain').textContent = pd.teraz + ' ' + pd.most;   // príbeh v dvoch úderoch: teraz → most
     } else {
       var key = state.orange.id+'|'+state.green.id;           // záloha: ručné mosty z v4, potom šablóna
       $('bridgeExplain').textContent = bridgeOverrides[key] || ('Namiesto toho, čo prináša ' + lower(state.orange.name) + ', ti ' + state.green.name + ' dovolí pozrieť sa na situáciu inak a urobiť ďalší krok.');
     }
-    $('priceText').textContent = lowerFirst(state.green.potrebujem[0]) || '—';
+    // Cena za zmenu: KTORÝ bod z karty vyberá model (index), text bodu ostáva
+    // Janettin; pod ním preklad do situácie. Bez AI = prvý bod, ako vo v6.
+    var body = state.green.potrebujem;
+    var idx = (ok && pd.cena && body[pd.cena.index] != null) ? pd.cena.index : 0;
+    $('priceBlock').setAttribute('aria-busy', loading ? 'true' : 'false');
+    if(loading){
+      $('priceText').innerHTML = skelInlineHTML();
+      $('priceContext').hidden = true;
+    } else {
+      $('priceText').textContent = lowerFirst(body[idx]) || '—';
+      var ctx = ok && pd.cena ? pd.cena.v_situacii : '';
+      $('priceContextText').textContent = ctx || '';
+      $('priceContext').hidden = !ctx;
+    }
     $('reflectBox').classList.toggle('checked', state.reflectChecked);
     $('s5cta').disabled = !state.reflectChecked;
   }
@@ -1199,24 +1244,39 @@ textarea{min-height:120px; line-height:1.5;}
   var stepsList = $('stepsList');
   var MIN_CUSTOM = 2;
 
-  function stepRow(value, label){
+  function stepRow(value, label, tag){
     var row = document.createElement('div');
     row.className = 'radio-item';
     row.innerHTML =
       '<label class="radio-head">'
       +   '<input type="radio" name="microStep" value="'+esc(value)+'">'
       +   '<span class="radio-dot"></span>'
-      +   '<span class="radio-text">'+esc(label)+'</span>'
+      +   '<span class="radio-text">'+esc(label)+(tag ? ' <span class="step-tag">'+esc(tag)+'</span>' : '')+'</span>'
       + '</label>';
     return row;
+  }
+  function stepsKicker(text){
+    var el = document.createElement('div'); el.className = 'steps-kicker'; el.textContent = text; return el;
   }
 
   function customTextarea(){ return stepsList.querySelector('.radio-item textarea'); }
 
   function renderS6(){
     stepsList.innerHTML = '';
-    state.stepOptions = state.green.potrebujem.slice();
-    state.stepOptions.forEach(function(text){ stepsList.appendChild(stepRow(text, text)); });
+    var body = state.green.potrebujem.slice();
+    var ok = pribehPlatny() && ai.pribeh === 'ok' && !!ai.pribehData;
+    var kroky = ok ? ai.pribehData.mikrokroky : [];
+    var cenaIdx = (ok && ai.pribehData.cena) ? ai.pribehData.cena.index : -1;
+    state.stepOptions = kroky.map(function(m){ return m.text; }).concat(body);
+
+    // Kroky na mieru (AI) a body z karty (Janette) sú jedna radio skupina —
+    // používateľ si vyberá z oboch, Janette vidí oboje vedľa seba.
+    if(kroky.length){
+      stepsList.appendChild(stepsKicker('Na mieru pre tvoju situáciu'));
+      kroky.forEach(function(m){ stepsList.appendChild(stepRow(m.text, m.text, m.lahsi ? 'najmenší krok' : '')); });
+      stepsList.appendChild(stepsKicker('Z karty ' + state.green.name));
+    }
+    body.forEach(function(text, i){ stepsList.appendChild(stepRow(text, text, i === cenaIdx ? 'cena za zmenu' : '')); });
 
     var customRow = stepRow('custom', 'Vlastný malý krok');
     var ta = document.createElement('textarea');
